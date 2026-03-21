@@ -1,0 +1,388 @@
+/**
+ * app/explore/page.tsx
+ *
+ * The core "60-second hook" experience — client component.
+ *
+ * Flow:
+ *  1. Date input → submit
+ *  2. Fetch APOD metadata via /api/apod/[date]
+ *  3. Display photo + title
+ *  4. Keyword picker (suggestions derived from title + explanation)
+ *  5. Note input ("The day I was born")
+ *  6. "Preview my card" → card preview
+ *  7. Share modal → Download (gated for anonymous) / Copy Caption / Web Share
+ *
+ * Draft is written to localStorage on every note/keyword change.
+ * If auth_return=1 is in the URL, we restore the draft and auto-trigger
+ * save + download once the card canvas is ready and the user is logged in.
+ *
+ * Analytics events: page_view, date_entered, photo_loaded, card_generated,
+ * card_downloaded, caption_copied, card_shared.
+ */
+
+'use client'
+
+import { useEffect, useState, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import DateInput from '@/components/DateInput'
+import PhotoDisplay from '@/components/PhotoDisplay'
+import KeywordPicker from '@/components/KeywordPicker'
+import ShareModal from '@/components/ShareModal'
+import { suggestKeywords } from '@/lib/keywords'
+import { saveDraft, loadDraft, clearDraft } from '@/lib/draft'
+import { trackEvent } from '@/lib/analytics'
+import { getSupabaseBrowser } from '@/lib/supabase-browser'
+import { downloadCard, canvasToBlob } from '@/lib/canvas'
+import { saveNode } from '@/lib/nodes'
+import type { CardOptions } from '@/lib/canvas'
+
+interface ApodData {
+  date: string
+  resolvedDate: string
+  title: string
+  explanation: string
+  copyright?: string
+}
+
+type Step = 'input' | 'loading' | 'photo' | 'card'
+type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+
+function ExplorePageInner() {
+  const searchParams = useSearchParams()
+  const defaultDate = searchParams.get('date') ?? ''
+  const authReturn = searchParams.get('auth_return') === '1'
+  const authErrorParam = searchParams.get('auth_error') === '1'
+
+  const [step, setStep] = useState<Step>('input')
+  const [apod, setApod] = useState<ApodData | null>(null)
+  const [note, setNote] = useState('')
+  const [keywords, setKeywords] = useState<string[]>([])
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [saveState, setSaveState] = useState<SaveState>('idle')
+
+  // Refs for the auto-save-and-download flow after Magic Link return
+  const cardCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const pendingDownloadRef = useRef(false)
+
+  // Track page view on mount
+  useEffect(() => {
+    trackEvent('page_view', { page: 'explore' })
+  }, [])
+
+  // Check auth status and watch for state changes
+  useEffect(() => {
+    const supabase = getSupabaseBrowser()
+    supabase.auth.getUser().then(({ data }) => {
+      setIsLoggedIn(!!data.user)
+    })
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const loggedIn = !!session?.user
+      setIsLoggedIn(loggedIn)
+      // If a pending download is waiting for auth to resolve, trigger it now
+      if (loggedIn && pendingDownloadRef.current && cardCanvasRef.current) {
+        pendingDownloadRef.current = false
+        triggerSaveAndDownload(cardCanvasRef.current)
+      }
+    })
+    return () => subscription.unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Handle auth_return: restore draft, set pending download, open modal
+  useEffect(() => {
+    if (!authReturn) return
+    const draft = loadDraft()
+    if (!draft) return
+
+    pendingDownloadRef.current = true
+    setNote(draft.note)
+    setKeywords(draft.keywords)
+    fetchApod(draft.date, draft.resolvedDate, draft.apodTitle, draft.apodCopyright)
+    // Open the share modal after photo has time to load — canvas will render,
+    // triggering handleCardReady which checks the pending flag
+    setTimeout(() => setShowShareModal(true), 800)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authReturn])
+
+  function fetchApod(
+    date: string,
+    resolvedDate?: string,
+    title?: string,
+    copyright?: string
+  ) {
+    // If we already have resolved data (draft restore), skip the network call
+    if (resolvedDate && title) {
+      setApod({ date, resolvedDate, title, explanation: '', copyright })
+      setSuggestions(suggestKeywords(title, ''))
+      setStep('photo')
+      return
+    }
+
+    setStep('loading')
+    setError(null)
+
+    fetch(`/api/apod/${date}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          setError(data.error)
+          setStep('input')
+          return
+        }
+        const apodData: ApodData = {
+          date: data.date,
+          resolvedDate: data.resolvedDate,
+          title: data.title,
+          explanation: data.explanation,
+          copyright: data.copyright,
+        }
+        setApod(apodData)
+        setSuggestions(suggestKeywords(data.title, data.explanation))
+        setStep('photo')
+      })
+      .catch(() => {
+        setError('Could not reach the cosmos. Please try again.')
+        setStep('input')
+      })
+  }
+
+  function handleDateSubmit(date: string) {
+    trackEvent('date_entered', { date })
+    fetchApod(date)
+  }
+
+  // Persist draft to localStorage whenever note/keywords change
+  useEffect(() => {
+    if (!apod) return
+    saveDraft({
+      date: apod.date,
+      resolvedDate: apod.resolvedDate,
+      note,
+      keywords,
+      apodTitle: apod.title,
+      apodCopyright: apod.copyright,
+    })
+  }, [note, keywords, apod])
+
+  /** Called by ShareModal when the canvas is ready. Triggers auto-download if pending. */
+  function handleCardReady(canvas: HTMLCanvasElement) {
+    cardCanvasRef.current = canvas
+    if (pendingDownloadRef.current && isLoggedIn) {
+      pendingDownloadRef.current = false
+      triggerSaveAndDownload(canvas)
+    }
+  }
+
+  /** Save the node to DB + upload card + trigger browser download. */
+  async function triggerSaveAndDownload(canvas: HTMLCanvasElement) {
+    if (!apod) return
+    const draft = loadDraft()
+    if (!draft) return
+
+    setSaveState('saving')
+    try {
+      const blob = await canvasToBlob(canvas)
+      await saveNode(draft, blob)
+      await downloadCard(canvas, `starry-${apod.date}.png`)
+      trackEvent('card_downloaded', { date: apod.date })
+      clearDraft()
+      setSaveState('saved')
+    } catch (err) {
+      console.error('[explore] save+download failed:', err)
+      setSaveState('error')
+    }
+  }
+
+  /** Called if auth completes while the modal is already open (fallback path). */
+  async function handleAuthSuccess() {
+    setIsLoggedIn(true)
+    if (cardCanvasRef.current && apod) {
+      await triggerSaveAndDownload(cardCanvasRef.current)
+    }
+  }
+
+  const cardOptions: CardOptions | null = apod
+    ? {
+        imageUrl: `/api/apod/image/${apod.resolvedDate}`,
+        note,
+        apodTitle: apod.title,
+        copyright: apod.copyright,
+        date: apod.date,
+      }
+    : null
+
+  return (
+    <main className="min-h-screen flex flex-col" style={{ background: '#030712' }}>
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 pt-8 pb-4 shrink-0">
+        <Link
+          href="/"
+          className="text-sm text-white/40 hover:text-white/70 transition-colors"
+        >
+          ← Home
+        </Link>
+        <span
+          className="text-lg font-light tracking-widest"
+          style={{ color: '#818cf8' }}
+        >
+          ✦ STARRY
+        </span>
+        {isLoggedIn ? (
+          <Link
+            href="/profile"
+            className="text-sm text-white/50 hover:text-white/80 transition-colors"
+          >
+            My Stars
+          </Link>
+        ) : (
+          <div className="w-14" />
+        )}
+      </header>
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col items-center px-6 pb-12">
+
+        {/* Save state banner */}
+        {saveState === 'saved' && (
+          <div
+            className="w-full max-w-sm mt-4 px-4 py-2.5 rounded-xl text-sm text-center"
+            style={{
+              background: 'rgba(129,140,248,0.15)',
+              border: '1px solid rgba(129,140,248,0.3)',
+              color: '#a5b4fc',
+            }}
+          >
+            ✦ Saved to My Stars
+          </div>
+        )}
+        {saveState === 'error' && (
+          <p className="w-full max-w-sm mt-4 text-sm text-red-400 text-center">
+            Save failed — please try again.
+          </p>
+        )}
+        {saveState === 'saving' && (
+          <p className="w-full max-w-sm mt-4 text-sm text-white/40 text-center">
+            Saving your moment…
+          </p>
+        )}
+
+        {/* Auth error (from expired/invalid Magic Link) */}
+        {authErrorParam && (
+          <p className="w-full max-w-sm mt-4 text-sm text-red-400 text-center">
+            Sign-in link expired. Please try again.
+          </p>
+        )}
+
+        {/* Step: Input */}
+        {(step === 'input' || step === 'loading') && (
+          <div className="w-full max-w-sm flex flex-col items-center gap-8 pt-16">
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl font-light text-white">
+                Enter your important date
+              </h1>
+              <p className="text-sm text-white/45">
+                Birthday, anniversary, first day — any date that matters.
+              </p>
+            </div>
+
+            <DateInput
+              onSubmit={handleDateSubmit}
+              isLoading={step === 'loading'}
+              defaultDate={defaultDate}
+            />
+
+            {error && (
+              <p className="text-sm text-red-400 text-center max-w-xs">{error}</p>
+            )}
+          </div>
+        )}
+
+        {/* Step: Photo + keywords + note */}
+        {step === 'photo' && apod && (
+          <div className="w-full max-w-sm flex flex-col gap-6 pt-8">
+            {/* Back button */}
+            <button
+              onClick={() => setStep('input')}
+              className="self-start text-sm text-white/40 hover:text-white/70 transition-colors"
+            >
+              ← Change date
+            </button>
+
+            {/* APOD photo */}
+            <PhotoDisplay
+              resolvedDate={apod.resolvedDate}
+              title={apod.title}
+              copyright={apod.copyright}
+              date={apod.date}
+            />
+
+            {/* Keyword picker */}
+            <KeywordPicker
+              suggestions={suggestions}
+              selected={keywords}
+              onChange={setKeywords}
+            />
+
+            {/* Note input */}
+            <div className="space-y-2">
+              <label className="block text-sm text-white/60 tracking-wide">
+                What is this day to you?
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="The day I was born…"
+                maxLength={120}
+                rows={2}
+                className="w-full px-4 py-3 rounded-xl text-white text-sm placeholder-white/30 outline-none resize-none transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                }}
+              />
+              <p className="text-right text-xs text-white/25">{note.length}/120</p>
+            </div>
+
+            {/* Preview card CTA */}
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="w-full py-4 rounded-xl text-sm font-medium tracking-wide transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                color: 'white',
+                boxShadow: '0 0 32px rgba(99,102,241,0.3)',
+              }}
+            >
+              Preview my card ✦
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Share modal */}
+      {showShareModal && cardOptions && (
+        <ShareModal
+          options={cardOptions}
+          isLoggedIn={isLoggedIn}
+          onClose={() => setShowShareModal(false)}
+          onAuthSuccess={handleAuthSuccess}
+          onCardReady={handleCardReady}
+        />
+      )}
+    </main>
+  )
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense>
+      <ExplorePageInner />
+    </Suspense>
+  )
+}

@@ -1,0 +1,54 @@
+[
+  {
+    "terms": ["nebula"],
+    "keywords": ["Birth", "Stillness", "Growth"]
+  },
+  {
+    "terms": ["supernova", "explosion", "remnant"],
+    "keywords": ["Rebirth", "Radiance", "Burst"]
+  },
+  {
+    "terms": ["galaxy", "galaxies", "andromeda", "milky way"],
+    "keywords": ["Vastness", "Journey", "Wonder"]
+  },
+  {
+    "terms": ["planet", "earth", "mars", "jupiter", "saturn", "venus", "mercury", "neptune", "uranus"],
+    "keywords": ["Home", "Solitude", "Orbit"]
+  },
+  {
+    "terms": ["star cluster", "cluster", "globular", "open cluster"],
+    "keywords": ["Belonging", "Gathering", "Light"]
+  },
+  {
+    "terms": ["eclipse", "transit"],
+    "keywords": ["Mystery", "Transformation", "Shadow"]
+  },
+  {
+    "terms": ["moon", "lunar", "moonrise"],
+    "keywords": ["Reflection", "Cycles", "Calm"]
+  },
+  {
+    "terms": ["comet"],
+    "keywords": ["Passage", "Fleeting", "Brilliance"]
+  },
+  {
+    "terms": ["black hole", "event horizon", "singularity"],
+    "keywords": ["Pull", "Depth", "Silence"]
+  },
+  {
+    "terms": ["aurora", "northern lights", "southern lights"],
+    "keywords": ["Dance", "Ephemeral", "Color"]
+  },
+  {
+    "terms": ["solar", "sun", "sunspot", "flare", "corona"],
+    "keywords": ["Energy", "Warmth", "Power"]
+  },
+  {
+    "terms": ["asteroid", "meteor", "meteorite", "impact"],
+    "keywords": ["Chance", "Impact", "Arrival"]
+  },
+  {
+    "terms": ["telescope", "deep field", "hubble", "webb", "jwst"],
+    "keywords": ["Perspective", "Distance", "Awe"]
+  }
+]

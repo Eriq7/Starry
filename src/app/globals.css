@@ -1,0 +1,44 @@
+/**
+ * globals.css
+ *
+ * Global stylesheet for Starry.
+ * Tailwind v4 base import + custom CSS variables for the space/dark theme.
+ */
+
+@import "tailwindcss";
+
+:root {
+  --color-space: #030712;
+  --color-nebula: #818cf8;
+  --color-stardust: #e0e4ff;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-space);
+  color: #f9fafb;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
+}
+
+/* Smooth scrolling for timeline */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar — space themed */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a1a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2d2d5e;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a8a;
+}
