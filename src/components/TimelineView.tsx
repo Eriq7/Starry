@@ -170,17 +170,7 @@ export default function TimelineView({ nodes }: TimelineViewProps) {
         <span className="font-cinzel text-sm tracking-widest" style={{ color: '#818cf8' }}>
           ✦ STARRY
         </span>
-        <Link
-          href="/gift/create"
-          className="text-xs px-3 py-1.5 rounded-full transition-all hover:scale-105"
-          style={{
-            background: 'rgba(129,140,248,0.15)',
-            border: '1px solid rgba(129,140,248,0.3)',
-            color: '#a5b4fc',
-          }}
-        >
-          Gift ✦
-        </Link>
+        <div className="w-16" />
       </header>
 
       {/* Scroll container */}

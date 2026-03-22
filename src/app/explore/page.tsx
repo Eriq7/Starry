@@ -104,8 +104,15 @@ function ExplorePageInner() {
   // Handle auth_return: restore draft, set pending download, open modal
   useEffect(() => {
     if (!authReturn) return
+
+    // Clean up the URL so refreshing doesn't re-trigger this flow
+    window.history.replaceState({}, '', '/explore')
+
     const draft = loadDraft()
-    if (!draft) return
+    if (!draft) {
+      setError('Your previous session expired. Please enter your date again.')
+      return
+    }
 
     pendingDownloadRef.current = true
     setDisplayName(draft.displayName ?? '')

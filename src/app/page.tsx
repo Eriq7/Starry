@@ -13,6 +13,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { resolveApod, getEasternToday } from '@/lib/apod'
+import AuthButton from '@/components/AuthButton'
 
 export const metadata: Metadata = {
   title: 'Starry — Your Universe, Your Moments',
@@ -89,6 +90,7 @@ export default async function HomePage() {
             >
               My Starry
             </Link>
+            <AuthButton />
           </div>
         </header>
 

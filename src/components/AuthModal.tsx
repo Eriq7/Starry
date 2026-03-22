@@ -35,10 +35,10 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     setErrorMsg(null)
 
     const supabase = getSupabaseBrowser()
-    const redirectTo =
-      typeof window !== 'undefined'
-        ? `${window.location.origin}/auth/callback?next=/explore`
-        : '/auth/callback?next=/explore'
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : '')
+    const redirectTo = `${baseUrl}/auth/callback?next=/explore`
 
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),

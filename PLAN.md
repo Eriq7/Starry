@@ -127,6 +127,19 @@ Upgrade the "My Stars" page (`/profile`) into a full-screen vertical scroll time
 
 ---
 
+## Sprint 14: Auth 修复 & Sign-Out ✅
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 1.1 | Supabase Dashboard: set Site URL → `https://starry-neon.vercel.app`, add Redirect URL `https://starry-neon.vercel.app/**` | ✅ (manual) |
+| 1.2 | Vercel Dashboard: set `NEXT_PUBLIC_APP_URL=https://starry-neon.vercel.app` in Production env | ✅ (manual) |
+| 1.3 | `AuthModal.tsx` — `emailRedirectTo` uses `NEXT_PUBLIC_APP_URL` env var, fallback to `window.location.origin` | ✅ |
+| 2.1–2.3 | `TimelineView.tsx` — `handleSignOut` + sign-out button in both empty-state and non-empty header | ✅ |
+| 3.1 | `explore/page.tsx` — clean up `?auth_return=1` via `window.history.replaceState` after draft restore | ✅ |
+| 3.2 | `explore/page.tsx` — friendly error message when draft is missing on auth return | ✅ |
+
+---
+
 ## Deployment ✅
 
 | Item | Detail |
