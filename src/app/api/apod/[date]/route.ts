@@ -67,6 +67,9 @@ export async function GET(
         { status: 429 }
       )
     }
+    if (message.startsWith('Could not find')) {
+      return NextResponse.json({ error: message }, { status: 404 })
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -111,7 +111,19 @@ export async function resolveApod(date: string): Promise<ApodMetadata> {
   }
 
   // 2. Fetch from NASA
-  const original = await fetchNasaApod(date)
+  let original: NasaApodResponse
+  try {
+    original = await fetchNasaApod(date)
+  } catch {
+    // NASA returned an error (500, etc.) — treat as needing fallback
+    original = {
+      date,
+      title: '',
+      explanation: '',
+      url: '',
+      media_type: 'video', // triggers the fallback loop below
+    }
+  }
 
   // 3. Handle video fallback
   let resolved = original
@@ -154,7 +166,7 @@ export async function resolveApod(date: string): Promise<ApodMetadata> {
     }
 
     if (resolved.media_type === 'video') {
-      throw new Error(`No image APOD found near ${date} after ${MAX_FALLBACK_ATTEMPTS} attempts`)
+      throw new Error(`Could not find an astronomy photo near ${date}. Please try a different date.`)
     }
   }
 
