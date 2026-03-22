@@ -85,3 +85,42 @@ Upgrade the "My Stars" page (`/profile`) into a full-screen vertical scroll time
 | 7.7 | `TimelineView.tsx` — tagline overlay on first card (auto-fades after 3.5s or on scroll) | ✅ |
 | 7.8 | `TimelineView.tsx` — animated scroll hint (chevron + "Scroll" label) on first card when nodes > 1 | ✅ |
 | 7.9 | `canvas.ts` — branding changed from `✦ starry.app` → `✦ Starry` | ✅ |
+
+## Sprint 10: Personalized Card — Name + Meteor Decorations ✅
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 10.1 | `lib/draft.ts` — add `displayName` field to Draft interface | ✅ |
+| 10.2 | `lib/canvas.ts` — add `displayName?` to CardOptions; dynamic top bar (120→160px when name present, photo shrinks 1080→1040px); "To [name]" in italic Cinzel top-left | ✅ |
+| 10.3 | `lib/canvas.ts` — `drawMeteorDecorations()`: deterministic meteors + micro-stars on left/right safe zones of both bars; drawn before all text | ✅ |
+| 10.4 | `explore/page.tsx` — `displayName` state; input field above keyword picker (max 15 chars); wired into draft persistence and cardOptions | ✅ |
+
+---
+
+## Sprint 11: Card Polish — Bigger "To Name" + Unified Meteor Direction ✅
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 11.1 | `lib/canvas.ts` — "To [name]" font 20→28px, opacity 0.55→0.70 | ✅ |
+| 11.2 | `lib/canvas.ts` — `noteY` when name present: 44→52 | ✅ |
+| 11.3 | `lib/canvas.ts` — Full rewrite of `drawMeteorDecorations()`: all 8 meteors now travel upper-right → lower-left; head opacity 0.55, dot 0.70, line width 2px default; longer 40–90px streaks; star opacity boosted to 0.12–0.15 | ✅ |
+
+---
+
+## Sprint 12: Card Visual Fix — Font Size, Date Move, Full Meteor Shower ✅
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 12.1 | `lib/canvas.ts` — "To [name]" font 28→30px (nearly same as 34px note text) | ✅ |
+| 12.2 | `lib/canvas.ts` — Date moved from top bar (above photo) → bottom bar at `CARD_H - 44`, above "✦ Starry" | ✅ |
+| 12.3 | `lib/canvas.ts` — Full-width meteor shower: 13 meteors per bar spanning entire 1080px width; no safe-zone restriction; ~12 stars per bar spread across full width | ✅ |
+
+---
+
+## Deployment ✅
+
+| Item | Detail |
+|------|--------|
+| Platform | Vercel |
+| Public URL | https://starry-neon.vercel.app/ |
+| Status | Live |

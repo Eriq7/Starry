@@ -17,6 +17,7 @@ export interface Draft {
   date: string           // user's entered date (YYYY-MM-DD)
   resolvedDate: string   // actual APOD date used
   note: string
+  displayName: string    // name shown in "To [name]" on the card (max 15 chars)
   keywords: string[]
   apodTitle: string
   apodCopyright?: string

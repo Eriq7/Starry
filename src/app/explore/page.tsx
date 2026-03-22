@@ -62,6 +62,7 @@ function ExplorePageInner() {
   const [step, setStep] = useState<Step>('input')
   const [preApodDate, setPreApodDate] = useState<string | null>(null)
   const [apod, setApod] = useState<ApodData | null>(null)
+  const [displayName, setDisplayName] = useState('')
   const [note, setNote] = useState('')
   const [keywords, setKeywords] = useState<string[]>([])
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -106,6 +107,7 @@ function ExplorePageInner() {
     if (!draft) return
 
     pendingDownloadRef.current = true
+    setDisplayName(draft.displayName ?? '')
     setNote(draft.note)
     setKeywords(draft.keywords)
     fetchApod(draft.date, draft.resolvedDate, draft.apodTitle, draft.apodCopyright)
@@ -180,18 +182,19 @@ function ExplorePageInner() {
     setStep('photo')
   }
 
-  // Persist draft to localStorage whenever note/keywords change
+  // Persist draft to localStorage whenever note/keywords/displayName change
   useEffect(() => {
     if (!apod) return
     saveDraft({
       date: apod.date,
       resolvedDate: apod.resolvedDate,
       note,
+      displayName,
       keywords,
       apodTitle: apod.title,
       apodCopyright: apod.copyright,
     })
-  }, [note, keywords, apod])
+  }, [note, displayName, keywords, apod])
 
   function handleCardReady(canvas: HTMLCanvasElement) {
     cardCanvasRef.current = canvas
@@ -242,6 +245,7 @@ function ExplorePageInner() {
     ? {
         imageUrl: `/api/apod/image/${apod.resolvedDate}`,
         note,
+        displayName,
         apodTitle: apod.title,
         copyright: apod.copyright,
         date: apod.date,
@@ -370,6 +374,26 @@ function ExplorePageInner() {
               copyright={apod.copyright}
               date={apod.date}
             />
+
+            {/* Name input */}
+            <div className="space-y-2">
+              <label className="block text-sm text-white/60 tracking-wide">
+                What name would you like on your card?
+              </label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value.slice(0, 15))}
+                placeholder="e.g. Eric, Luna, Mom…"
+                maxLength={15}
+                className="w-full px-4 py-3 rounded-xl text-white text-sm placeholder-white/30 outline-none transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                }}
+              />
+              <p className="text-right text-xs text-white/25">{displayName.length}/15</p>
+            </div>
 
             {/* Keyword picker */}
             <KeywordPicker
