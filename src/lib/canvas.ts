@@ -112,9 +112,9 @@ function drawMeteorDecorations(
   photoBotY: number,  // y where photo ends / bottom bar starts (always 1200)
 ): void {
   // Helper: draw one meteor streak.
-  // Convention: (x1,y1) is the bright head (upper-right), (x2,y2) is the fading tail (lower-left).
+  // Convention: (x1,y1) is the fading tail (upper-right), (x2,y2) is the bright head (lower-left).
   function drawMeteor(x1: number, y1: number, x2: number, y2: number, width = 2.0) {
-    const grad = ctx.createLinearGradient(x1, y1, x2, y2)
+    const grad = ctx.createLinearGradient(x2, y2, x1, y1)
     grad.addColorStop(0, 'rgba(255,255,255,0.55)')
     grad.addColorStop(1, 'rgba(255,255,255,0)')
     ctx.save()
@@ -125,10 +125,10 @@ function drawMeteorDecorations(
     ctx.moveTo(x1, y1)
     ctx.lineTo(x2, y2)
     ctx.stroke()
-    // Bright dot at head
+    // Bright dot at head (lower-left end)
     ctx.fillStyle = 'rgba(255,255,255,0.70)'
     ctx.beginPath()
-    ctx.arc(x1, y1, 2, 0, Math.PI * 2)
+    ctx.arc(x2, y2, 2, 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
   }

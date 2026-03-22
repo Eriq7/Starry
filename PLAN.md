@@ -117,6 +117,16 @@ Upgrade the "My Stars" page (`/profile`) into a full-screen vertical scroll time
 
 ---
 
+## Sprint 13: Meteor Direction Fix + Explore Page Starry Background ✅
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 13.1 | `lib/canvas.ts` — reverse gradient in `drawMeteor()`: bright head now at `(x2,y2)` lower-left, fading tail at `(x1,y1)` upper-right; bright dot moved to `(x2,y2)` | ✅ |
+| 13.2 | `components/StarryBackground.tsx` — canvas-based animated background: ~80–160 twinkling stars, occasional shooting stars (head at lower-left), subtle nebula radial gradients | ✅ |
+| 13.3 | `app/explore/page.tsx` — import and render `<StarryBackground />` as first child; header + content given `z-[1]` to stay above canvas | ✅ |
+
+---
+
 ## Deployment ✅
 
 | Item | Detail |

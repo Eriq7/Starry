@@ -27,6 +27,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import StarryBackground from '@/components/StarryBackground'
 import DateInput from '@/components/DateInput'
 import PhotoDisplay from '@/components/PhotoDisplay'
 import KeywordPicker from '@/components/KeywordPicker'
@@ -253,9 +254,10 @@ function ExplorePageInner() {
     : null
 
   return (
-    <main className="min-h-screen flex flex-col" style={{ background: '#030712' }}>
+    <main className="relative min-h-screen flex flex-col" style={{ background: '#030712' }}>
+      <StarryBackground />
       {/* Header */}
-      <header className="flex items-center justify-between px-6 pt-8 pb-4 shrink-0">
+      <header className="relative z-[1] flex items-center justify-between px-6 pt-8 pb-4 shrink-0">
         <Link
           href="/"
           className="text-sm text-white/40 hover:text-white/70 transition-colors"
@@ -281,7 +283,7 @@ function ExplorePageInner() {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col items-center px-6 pb-12">
+      <div className="relative z-[1] flex-1 flex flex-col items-center px-6 pb-12">
 
         {/* Save state banner */}
         {saveState === 'saved' && (
