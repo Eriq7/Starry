@@ -23,6 +23,7 @@ export type EventType =
   | 'gift_created'
   | 'gift_viewed'
   | 'gift_converted'
+  | 'card_saved_to_timeline'
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return 'server'

@@ -2,10 +2,12 @@
  * components/DateInput.tsx
  *
  * Date picker for the explore flow.
- * Constraints: minimum 1995-06-16 (APOD start date), maximum today (no future dates).
- * Includes a shortcut to jump to today's date.
+ * Constraints: maximum today (no future dates).
+ * Pre-1995 dates (before APOD_START_DATE) are allowed but trigger the
+ * `onPreApod` callback instead of `onSubmit`, routing the user to the
+ * curated gallery fallback.
  *
- * Emits `date_entered` analytics event on submit.
+ * Includes a shortcut to jump to today's date.
  */
 
 'use client'
@@ -15,11 +17,13 @@ import { APOD_START_DATE } from '@/lib/constants'
 
 interface DateInputProps {
   onSubmit: (date: string) => void
+  /** Called when user submits a date before APOD_START_DATE */
+  onPreApod?: (date: string) => void
   isLoading?: boolean
   defaultDate?: string
 }
 
-export default function DateInput({ onSubmit, isLoading, defaultDate }: DateInputProps) {
+export default function DateInput({ onSubmit, onPreApod, isLoading, defaultDate }: DateInputProps) {
   const today = new Date().toISOString().split('T')[0]
   const [value, setValue] = useState(defaultDate ?? '')
   const [error, setError] = useState<string | null>(null)
@@ -30,15 +34,21 @@ export default function DateInput({ onSubmit, isLoading, defaultDate }: DateInpu
       setError('Please enter a date.')
       return
     }
-    if (value < APOD_START_DATE) {
-      setError(`APOD starts on June 16, 1995. Pre-1995 curated gallery coming soon.`)
-      return
-    }
     if (value > today) {
       setError("You can't visit the future (yet).")
       return
     }
     setError(null)
+
+    if (value < APOD_START_DATE) {
+      if (onPreApod) {
+        onPreApod(value)
+      } else {
+        setError('APOD starts June 16, 1995. Try a date after that.')
+      }
+      return
+    }
+
     onSubmit(value)
   }
 
@@ -53,7 +63,6 @@ export default function DateInput({ onSubmit, isLoading, defaultDate }: DateInpu
           type="date"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          min={APOD_START_DATE}
           max={today}
           className="w-full px-4 py-3 rounded-xl text-white text-base appearance-none outline-none focus:ring-2 transition-all"
           style={{

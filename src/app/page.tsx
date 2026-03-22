@@ -12,7 +12,7 @@
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { resolveApod } from '@/lib/apod'
+import { resolveApod, getEasternToday } from '@/lib/apod'
 
 export const metadata: Metadata = {
   title: 'Starry — Your Universe, Your Moments',
@@ -23,7 +23,7 @@ export const revalidate = 43200
 
 async function getTodayApod() {
   try {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getEasternToday()
     return await resolveApod(today)
   } catch {
     return null
@@ -32,14 +32,14 @@ async function getTodayApod() {
 
 export default async function HomePage() {
   const apod = await getTodayApod()
-  const today = new Date().toISOString().split('T')[0]
+  const today = getEasternToday()
 
   const formattedDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: 'UTC',
+    timeZone: 'America/New_York',
   })
 
   return (
@@ -52,6 +52,7 @@ export default async function HomePage() {
             src={`/api/apod/image/${apod.resolvedDate}`}
             alt={apod.title}
             className="w-full h-full object-cover"
+            fetchPriority="high"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/80" />
         </div>
@@ -70,24 +71,23 @@ export default async function HomePage() {
         {/* Header */}
         <header className="flex items-center justify-between px-6 pt-8 pb-4">
           <span
-            className="text-xl font-light tracking-widest"
+            className="font-cinzel text-xl tracking-widest"
             style={{ color: '#818cf8' }}
           >
             ✦ STARRY
           </span>
           <div className="flex items-center gap-4">
             <Link
-              href="/profile"
+              href="/gift/create"
               className="text-sm text-white/50 hover:text-white/80 transition-colors"
             >
-              My Stars
+              Gift ✦
             </Link>
             <Link
               href="/profile"
-              className="text-white/50 hover:text-white/80 transition-colors"
-              aria-label="Settings"
+              className="text-sm text-white/50 hover:text-white/80 transition-colors"
             >
-              ⚙️
+              My Starry
             </Link>
           </div>
         </header>

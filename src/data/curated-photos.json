@@ -1,26 +1,362 @@
 [
   {
     "id": "pillars-of-creation",
+    "apodDate": "1995-11-02",
     "title": "Pillars of Creation",
-    "credit": "NASA, ESA, CSA, STScI; J. DePasquale, A. Koekemoer, A. Pagan (STScI)",
-    "description": "Towering pillars of gas and dust in the Eagle Nebula, where new stars are being born.",
-    "filename": "pillars-of-creation.jpg",
+    "credit": "NASA/ESA/STScI",
+    "description": "Towering pillars of gas and dust in the Eagle Nebula, one of the most iconic images ever taken by Hubble.",
+    "category": "Nebulae",
     "keywords": ["Birth", "Growth", "Stillness"]
   },
   {
     "id": "hubble-deep-field",
-    "title": "Hubble Ultra Deep Field",
-    "credit": "NASA, ESA, S. Beckwith (STScI) and the HUDF Team",
-    "description": "Nearly 10,000 galaxies of various ages, sizes, shapes, and colors in a tiny patch of sky.",
-    "filename": "hubble-deep-field.jpg",
+    "apodDate": "1996-01-16",
+    "title": "Hubble Deep Field",
+    "credit": "R. Williams/NASA/ESA/STScI",
+    "description": "Nearly 3,000 galaxies of various ages, sizes, and shapes in a tiny patch of sky — a landmark in cosmology.",
+    "category": "Deep Fields",
     "keywords": ["Vastness", "Awe", "Distance"]
   },
   {
-    "id": "pale-blue-dot",
-    "title": "Pale Blue Dot",
+    "id": "comet-hale-bopp",
+    "apodDate": "1997-04-09",
+    "title": "Comet Hale-Bopp",
+    "credit": "NASA",
+    "description": "One of the brightest comets of the 20th century, visible to the naked eye for a record 18 months.",
+    "category": "Comets",
+    "keywords": ["Passage", "Rare", "Fleeting"]
+  },
+  {
+    "id": "crab-nebula",
+    "apodDate": "1999-05-09",
+    "title": "Crab Nebula",
+    "credit": "NASA/ESA/STScI",
+    "description": "The remnant of a supernova explosion witnessed in 1054 AD — a pulsar winds a 10-light-year-wide cloud of filaments.",
+    "category": "Supernova Remnants",
+    "keywords": ["Remnant", "Energy", "Legacy"]
+  },
+  {
+    "id": "whirlpool-galaxy",
+    "apodDate": "1999-07-22",
+    "title": "Whirlpool Galaxy",
+    "credit": "NASA/ESA/STScI",
+    "description": "M51, a classic grand-design spiral galaxy interacting with its smaller companion NGC 5195.",
+    "category": "Galaxies",
+    "keywords": ["Spiral", "Dance", "Connection"]
+  },
+  {
+    "id": "saturn-rings",
+    "apodDate": "2000-09-28",
+    "title": "Saturn and Its Rings",
+    "credit": "NASA/ESA/STScI",
+    "description": "Saturn's magnificent ring system, made of billions of ice and rock particles spanning 282,000 kilometres.",
+    "category": "Planets",
+    "keywords": ["Wonder", "Rings", "Majesty"]
+  },
+  {
+    "id": "eagle-nebula-tower",
+    "apodDate": "2001-10-12",
+    "title": "The Fairy of Eagle Nebula",
+    "credit": "NASA/ESA/STScI",
+    "description": "A towering column of gas and dust in the Eagle Nebula — stellar nursery sculpted by radiation and stellar winds.",
+    "category": "Nebulae",
+    "keywords": ["Creation", "Tower", "Genesis"]
+  },
+  {
+    "id": "antennae-galaxies",
+    "apodDate": "2002-10-23",
+    "title": "Antennae Galaxies",
+    "credit": "NASA/ESA/STScI",
+    "description": "Two colliding galaxies stretching long tidal tails into space — a preview of what awaits the Milky Way and Andromeda.",
+    "category": "Galaxies",
+    "keywords": ["Collision", "Merger", "Chaos"]
+  },
+  {
+    "id": "mars-2003",
+    "apodDate": "2003-08-28",
+    "title": "Mars at Closest Approach",
+    "credit": "NASA/ESA/STScI",
+    "description": "Mars at its closest point to Earth in 60,000 years — polar ice caps, Valles Marineris, and volcanic plains visible.",
+    "category": "Planets",
+    "keywords": ["Red Planet", "Journey", "Proximity"]
+  },
+  {
+    "id": "hubble-ultra-deep-field",
+    "apodDate": "2004-03-10",
+    "title": "Hubble Ultra Deep Field",
+    "credit": "NASA/ESA/STScI",
+    "description": "The deepest portrait of the visible universe — ~10,000 galaxies in a patch of sky smaller than a grain of sand.",
+    "category": "Deep Fields",
+    "keywords": ["Infinity", "Origins", "Time"]
+  },
+  {
+    "id": "orion-nebula-hubble",
+    "apodDate": "2006-01-11",
+    "title": "Orion Nebula",
+    "credit": "NASA/ESA/STScI",
+    "description": "The nearest massive star-forming region — a stellar nursery where thousands of new suns are being born.",
+    "category": "Nebulae",
+    "keywords": ["Birth", "Fire", "Nursery"]
+  },
+  {
+    "id": "pleiades",
+    "apodDate": "2004-09-12",
+    "title": "Pleiades Star Cluster",
+    "credit": "NASA/ESA/STScI",
+    "description": "The Seven Sisters — an open cluster of young hot blue stars wrapped in gossamer blue reflection nebulae.",
+    "category": "Star Clusters",
+    "keywords": ["Sisters", "Youth", "Blue"]
+  },
+  {
+    "id": "ngc-1300-galaxy",
+    "apodDate": "2005-09-12",
+    "title": "NGC 1300 Barred Spiral",
+    "credit": "NASA/ESA/STScI",
+    "description": "A perfect barred spiral galaxy — a grand design whose arms trail behind it like a pinwheel 110,000 light-years across.",
+    "category": "Galaxies",
+    "keywords": ["Spiral", "Structure", "Grandeur"]
+  },
+  {
+    "id": "andromeda-galaxy",
+    "apodDate": "2007-02-22",
+    "title": "Andromeda Galaxy",
+    "credit": "NASA/ESA/STScI",
+    "description": "Our nearest galactic neighbour — 2.5 million light-years away, on a collision course with the Milky Way in ~4 billion years.",
+    "category": "Galaxies",
+    "keywords": ["Neighbour", "Destiny", "Scale"]
+  },
+  {
+    "id": "cats-eye-nebula",
+    "apodDate": "2007-10-22",
+    "title": "Cat's Eye Nebula",
+    "credit": "NASA/ESA/STScI",
+    "description": "A dying sun's last gasp — concentric shells of gas ejected over thousands of years create an otherworldly eye.",
+    "category": "Nebulae",
+    "keywords": ["Eye", "Transformation", "Ending"]
+  },
+  {
+    "id": "sombrero-galaxy",
+    "apodDate": "2003-05-04",
+    "title": "Sombrero Galaxy",
+    "credit": "NASA/ESA/STScI",
+    "description": "M104 — a majestic edge-on spiral with a bright nucleus, dark dust lane, and a halo of globular clusters.",
+    "category": "Galaxies",
+    "keywords": ["Edge-on", "Mystery", "Shadow"]
+  },
+  {
+    "id": "helix-nebula",
+    "apodDate": "2003-05-10",
+    "title": "Helix Nebula",
+    "credit": "NASA/ESA/STScI",
+    "description": "The 'Eye of God' — a planetary nebula 650 light-years away, one of the closest to Earth, formed when a dying star shed its layers.",
+    "category": "Nebulae",
+    "keywords": ["Eye", "Mortality", "Beauty"]
+  },
+  {
+    "id": "omega-centauri",
+    "apodDate": "2009-08-25",
+    "title": "Omega Centauri",
+    "credit": "NASA/ESA/STScI",
+    "description": "The largest and most massive globular cluster in the Milky Way — 10 million stars packed into a sphere 150 light-years across.",
+    "category": "Star Clusters",
+    "keywords": ["Swarm", "Ancient", "Crowded"]
+  },
+  {
+    "id": "eta-carinae",
+    "apodDate": "2011-03-14",
+    "title": "Eta Carinae Nebula",
+    "credit": "NASA/ESA/STScI",
+    "description": "One of the most massive and luminous stars known — 100 times the mass of the Sun, on the edge of a hypernova.",
+    "category": "Stars",
+    "keywords": ["Volatile", "Massive", "Unstable"]
+  },
+  {
+    "id": "perseid-meteor-shower",
+    "apodDate": "2012-08-13",
+    "title": "Perseid Meteor Shower",
+    "credit": "NASA",
+    "description": "Earth passes through the debris trail of Comet Swift-Tuttle — 100 meteors per hour streak through summer skies.",
+    "category": "Meteor Showers",
+    "keywords": ["Shooting Stars", "Summer", "Wishes"]
+  },
+  {
+    "id": "transit-venus-2012",
+    "apodDate": "2012-06-06",
+    "title": "Transit of Venus",
+    "credit": "NASA/SDO",
+    "description": "Venus crosses the face of the Sun — the last transit until 2117. A rare alignment of three worlds in our solar system.",
+    "category": "Solar Events",
+    "keywords": ["Transit", "Rare", "Alignment"]
+  },
+  {
+    "id": "ring-nebula",
+    "apodDate": "2013-05-23",
+    "title": "Ring Nebula",
+    "credit": "NASA/ESA/STScI",
+    "description": "M57 — a smoke ring of glowing gas blown off by a dying star, a preview of our own Sun's fate in 5 billion years.",
+    "category": "Nebulae",
+    "keywords": ["Ring", "Fate", "Cycle"]
+  },
+  {
+    "id": "aurora-borealis",
+    "apodDate": "2014-02-24",
+    "title": "Aurora Borealis",
+    "credit": "NASA",
+    "description": "The Northern Lights — solar particles guided by Earth's magnetic field ignite curtains of green, purple, and red.",
+    "category": "Auroras",
+    "keywords": ["Light", "Dance", "Magic"]
+  },
+  {
+    "id": "pluto-heart",
+    "apodDate": "2015-07-15",
+    "title": "Pluto's Heart",
+    "credit": "NASA/JHUAPL/SwRI",
+    "description": "New Horizons' first close-up of Pluto reveals a heart-shaped plain of nitrogen ice — Tombaugh Regio.",
+    "category": "Dwarf Planets",
+    "keywords": ["Heart", "Discovery", "Far Away"]
+  },
+  {
+    "id": "lagoon-nebula",
+    "apodDate": "2016-07-08",
+    "title": "Lagoon Nebula",
+    "credit": "NASA/ESA/STScI",
+    "description": "A stellar nursery 4,000 light-years away where young hot stars are sculpting gas and dust into dramatic formations.",
+    "category": "Nebulae",
+    "keywords": ["Lagoon", "Nursery", "Pink"]
+  },
+  {
+    "id": "total-solar-eclipse-2017",
+    "apodDate": "2017-08-22",
+    "title": "Total Solar Eclipse 2017",
+    "credit": "NASA",
+    "description": "The Great American Eclipse — the Moon perfectly covers the Sun, revealing the corona and turning day to night.",
+    "category": "Solar Events",
+    "keywords": ["Eclipse", "Totality", "Awe"]
+  },
+  {
+    "id": "rosette-nebula",
+    "apodDate": "2018-02-13",
+    "title": "Rosette Nebula",
+    "credit": "NASA/ESA",
+    "description": "A massive stellar nursery 5,000 light-years away whose central star cluster NGC 2244 sculpts it into a rose-like form.",
+    "category": "Nebulae",
+    "keywords": ["Rose", "Bloom", "Creation"]
+  },
+  {
+    "id": "first-black-hole",
+    "apodDate": "2019-04-11",
+    "title": "First Image of a Black Hole",
+    "credit": "Event Horizon Telescope Collaboration",
+    "description": "The first direct image of a black hole — M87's supermassive black hole, 6.5 billion solar masses, 55 million light-years away.",
+    "category": "Black Holes",
+    "keywords": ["Historic", "Shadow", "Gravity"]
+  },
+  {
+    "id": "milky-way-atacama",
+    "apodDate": "2020-06-07",
+    "title": "Milky Way over Atacama",
+    "credit": "ESO/P. Horálek",
+    "description": "The arch of our galaxy rising above the driest desert on Earth — a river of 400 billion stars stretched across the night.",
+    "category": "Milky Way",
+    "keywords": ["Home", "Galaxy", "Night"]
+  },
+  {
+    "id": "ingenuity-mars",
+    "apodDate": "2021-04-21",
+    "title": "Ingenuity's First Flight",
     "credit": "NASA/JPL-Caltech",
-    "description": "Earth seen from Voyager 1, 3.7 billion miles away — a mote of dust suspended in a sunbeam.",
-    "filename": "pale-blue-dot.jpg",
-    "keywords": ["Home", "Solitude", "Perspective"]
+    "description": "The first powered, controlled flight on another planet — Ingenuity helicopter hovers above Jezero Crater on Mars.",
+    "category": "Space Exploration",
+    "keywords": ["First", "Flight", "History"]
+  },
+  {
+    "id": "webb-smacs-deep-field",
+    "apodDate": "2022-07-13",
+    "title": "Webb First Deep Field",
+    "credit": "NASA/ESA/CSA/STScI",
+    "description": "SMACS 0723 — Webb's first deep field, showing galaxy clusters as they appeared 4.6 billion years ago with unprecedented clarity.",
+    "category": "Deep Fields",
+    "keywords": ["Webb", "Clarity", "Ancient"]
+  },
+  {
+    "id": "carina-nebula-webb",
+    "apodDate": "2022-07-14",
+    "title": "Carina Nebula — Webb",
+    "credit": "NASA/ESA/CSA/STScI",
+    "description": "Webb reveals hundreds of previously unseen protostars in the Carina Nebula — star formation in stunning infrared detail.",
+    "category": "Nebulae",
+    "keywords": ["Infrared", "Revelation", "Stars"]
+  },
+  {
+    "id": "stephans-quintet-webb",
+    "apodDate": "2022-07-15",
+    "title": "Stephan's Quintet",
+    "credit": "NASA/ESA/CSA/STScI",
+    "description": "Webb resolves five galaxies in a gravitational dance — four locked in a compact group, one foreground interloper.",
+    "category": "Galaxies",
+    "keywords": ["Quintet", "Interaction", "Webb"]
+  },
+  {
+    "id": "southern-ring-nebula",
+    "apodDate": "2022-07-16",
+    "title": "Southern Ring Nebula",
+    "credit": "NASA/ESA/CSA/STScI",
+    "description": "Webb reveals a dying star at the centre of the Southern Ring Nebula surrounded by layers of gas and dust it ejected over millennia.",
+    "category": "Nebulae",
+    "keywords": ["Dying Star", "Layers", "Webb"]
+  },
+  {
+    "id": "pillars-webb",
+    "apodDate": "2022-10-20",
+    "title": "Pillars of Creation — Webb",
+    "credit": "NASA/ESA/CSA/STScI",
+    "description": "Webb revisits the iconic Pillars of Creation in infrared, revealing young stars still forming inside the gas columns.",
+    "category": "Nebulae",
+    "keywords": ["Reborn", "Infrared", "Classic"]
+  },
+  {
+    "id": "annular-solar-eclipse-2023",
+    "apodDate": "2023-10-15",
+    "title": "Ring of Fire Eclipse",
+    "credit": "NASA",
+    "description": "The annular solar eclipse of October 2023 — the Moon too far from Earth to fully cover the Sun, leaving a blazing ring of fire.",
+    "category": "Solar Events",
+    "keywords": ["Ring of Fire", "Eclipse", "Rare"]
+  },
+  {
+    "id": "aurora-may-2024",
+    "apodDate": "2024-05-12",
+    "title": "Historic Aurora Storm",
+    "credit": "NASA",
+    "description": "The most intense geomagnetic storm in 20 years sent auroras across the globe — visible as far south as Florida and Spain.",
+    "category": "Auroras",
+    "keywords": ["Rare", "Intense", "Global"]
+  },
+  {
+    "id": "total-solar-eclipse-2024",
+    "apodDate": "2024-04-10",
+    "title": "Total Solar Eclipse 2024",
+    "credit": "NASA",
+    "description": "The Great North American Eclipse — 32 million people in the path of totality witnessed 4 minutes of cosmic alignment.",
+    "category": "Solar Events",
+    "keywords": ["Totality", "Alignment", "Moment"]
+  },
+  {
+    "id": "jupiter-jwst",
+    "apodDate": "2022-08-23",
+    "title": "Jupiter by Webb",
+    "credit": "NASA/ESA/CSA/STScI",
+    "description": "Webb captures Jupiter in infrared showing auroras, storms, and the Great Red Spot with unprecedented detail.",
+    "category": "Planets",
+    "keywords": ["Giant", "Aurora", "Storm"]
+  },
+  {
+    "id": "cosmic-cliffs-carina",
+    "apodDate": "2022-07-17",
+    "title": "Cosmic Cliffs",
+    "credit": "NASA/ESA/CSA/STScI",
+    "description": "Webb's infrared gaze sees through the gas and dust of NGC 3324, revealing star-forming cliffs reaching 7 light-years high.",
+    "category": "Nebulae",
+    "keywords": ["Cliffs", "Towering", "New Stars"]
   }
 ]

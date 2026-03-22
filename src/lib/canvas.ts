@@ -27,6 +27,17 @@ const PHOTO_H = 1080      // photo occupies exactly 1080px (1:1 section)
 const PHOTO_BOT = PHOTO_TOP + PHOTO_H  // 1200
 
 /**
+ * Read the Cinzel Decorative font family name from the CSS variable set by next/font/google.
+ * Awaits document.fonts.ready to ensure the font file is fully loaded before canvas draws.
+ */
+async function getCinzelFont(): Promise<string> {
+  await document.fonts.ready
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--font-cinzel').trim()
+  return raw || 'serif'
+}
+
+/**
  * Wrap text onto canvas, returning the number of lines drawn.
  * Truncates with ellipsis if maxLines is exceeded.
  */
@@ -89,6 +100,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
  */
 export async function generateCard(options: CardOptions): Promise<HTMLCanvasElement> {
   const { imageUrl, note, apodTitle, copyright, date } = options
+  const fontFamily = await getCinzelFont()
 
   const canvas = document.createElement('canvas')
   canvas.width = CARD_W
@@ -102,7 +114,7 @@ export async function generateCard(options: CardOptions): Promise<HTMLCanvasElem
   // --- Top bar (y 0–120): note + date ---
   // Note text
   if (note.trim()) {
-    ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    ctx.font = `bold 34px ${fontFamily}`
     ctx.fillStyle = '#ffffff'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
@@ -116,7 +128,7 @@ export async function generateCard(options: CardOptions): Promise<HTMLCanvasElem
     day: 'numeric',
     timeZone: 'UTC',
   })
-  ctx.font = '20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  ctx.font = `24px ${fontFamily}`
   ctx.fillStyle = 'rgba(255,255,255,0.50)'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
@@ -134,7 +146,7 @@ export async function generateCard(options: CardOptions): Promise<HTMLCanvasElem
 
   // --- Bottom bar (y 1200–1350): APOD title + copyright + CTA ---
   // APOD title
-  ctx.font = '26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  ctx.font = `26px ${fontFamily}`
   ctx.fillStyle = '#e0e4ff'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
@@ -142,7 +154,7 @@ export async function generateCard(options: CardOptions): Promise<HTMLCanvasElem
 
   // Copyright
   if (copyright) {
-    ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    ctx.font = `16px ${fontFamily}`
     ctx.fillStyle = 'rgba(255,255,255,0.38)'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
@@ -150,13 +162,23 @@ export async function generateCard(options: CardOptions): Promise<HTMLCanvasElem
   }
 
   // CTA
-  ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  ctx.font = `bold 18px ${fontFamily}`
   ctx.fillStyle = '#818cf8'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
-  ctx.fillText('✦ starry.app', CARD_W / 2, CARD_H - 16)
+  ctx.fillText('✦ Starry', CARD_W / 2, CARD_H - 16)
 
   return canvas
+}
+
+/**
+ * Release GPU memory held by a canvas.
+ * Call this when a card canvas is no longer needed (component unmount, re-render).
+ * Setting dimensions to 0 tells the browser to free the backing store.
+ */
+export function disposeCanvas(canvas: HTMLCanvasElement): void {
+  canvas.width = 0
+  canvas.height = 0
 }
 
 /** Convert a canvas to a Blob (PNG by default). */

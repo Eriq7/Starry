@@ -14,7 +14,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { generateCard, type CardOptions } from '@/lib/canvas'
+import { generateCard, disposeCanvas, type CardOptions } from '@/lib/canvas'
 import { trackEvent } from '@/lib/analytics'
 
 interface ShareCardProps {
@@ -30,13 +30,21 @@ export default function ShareCard({ options, onReady }: ShareCardProps) {
 
   useEffect(() => {
     setStatus('loading')
+    let currentCanvas: HTMLCanvasElement | null = null
 
     generateCard(options)
       .then((canvas) => {
         const container = containerRef.current
         if (!container) return
-        // Clear previous canvas if any
-        while (container.firstChild) container.removeChild(container.firstChild)
+
+        // Dispose and remove any previous canvas to free GPU memory
+        const prev = container.firstChild as HTMLCanvasElement | null
+        if (prev) {
+          disposeCanvas(prev)
+          container.removeChild(prev)
+        }
+
+        currentCanvas = canvas
         canvas.style.width = '100%'
         canvas.style.height = '100%'
         container.appendChild(canvas)
@@ -48,6 +56,14 @@ export default function ShareCard({ options, onReady }: ShareCardProps) {
         setErrorMsg(err instanceof Error ? err.message : 'Card generation failed')
         setStatus('error')
       })
+
+    // Dispose canvas when the effect re-runs or the component unmounts
+    return () => {
+      if (currentCanvas) {
+        disposeCanvas(currentCanvas)
+        currentCanvas = null
+      }
+    }
   // Re-run only when content-affecting props change
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.imageUrl, options.note, options.apodTitle, options.copyright, options.date])

@@ -15,7 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { resolveApod, APOD_START_DATE } from '@/lib/apod'
+import { resolveApod, APOD_START_DATE, getEasternToday } from '@/lib/apod'
 
 export async function GET(
   _request: NextRequest,
@@ -35,8 +35,8 @@ export async function GET(
     )
   }
 
-  // Don't allow future dates
-  const today = new Date().toISOString().split('T')[0]
+  // Don't allow future dates (use Eastern time — NASA APOD updates at midnight ET)
+  const today = getEasternToday()
   if (date > today) {
     return NextResponse.json({ error: 'Date cannot be in the future.' }, { status: 400 })
   }

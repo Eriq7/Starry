@@ -11,12 +11,15 @@ Components are small, focused, and stateless where possible — state lives in t
 
 | File | Purpose |
 |------|---------|
-| `DateInput.tsx` | Controlled date picker for the explore flow. Enforces min date (1995-06-16) and max date (today). |
+| `DateInput.tsx` | Controlled date picker. Max=today; pre-1995 calls `onPreApod` for curated gallery flow. |
 | `PhotoDisplay.tsx` | Renders an APOD photo from `/api/apod/image/[date]`. Shows loading skeleton, emits `photo_loaded` event. |
 | `KeywordPicker.tsx` | Chip-style multi-select for keywords. Shows AI-suggested keywords + custom input. 1–4 selections. |
-| `ShareCard.tsx` | Mounts a Canvas-based card preview. Wraps `lib/canvas.ts`. Exposes canvas ref to parent. |
+| `ShareCard.tsx` | Mounts a Canvas-based card preview. Wraps `lib/canvas.ts`. Disposes canvas on unmount. |
 | `ShareModal.tsx` | Bottom sheet modal with Download / Copy Caption / Web Share actions. Handles anonymous gating. |
 | `AuthModal.tsx` | Magic Link login modal. Triggered when anonymous user tries to download. Preserves draft context. |
+| `TimelineCard.tsx` | Full-screen (100dvh) card for one saved node. APOD photo background, lazy-loaded, share button. |
+| `TimelineView.tsx` | Scroll-snap vertical timeline container. IntersectionObserver tracks active card, lazy loads ±1. |
+| `CuratedGallery.tsx` | Pre-1995 fallback: responsive grid of curated APOD photos with category filter. |
 
 ## Data flow
 

@@ -5,12 +5,13 @@
  *
  * Flow:
  *  1. Date input → submit
- *  2. Fetch APOD metadata via /api/apod/[date]
- *  3. Display photo + title
- *  4. Keyword picker (suggestions derived from title + explanation)
- *  5. Note input ("The day I was born")
- *  6. "Preview my card" → card preview
- *  7. Share modal → Download (gated for anonymous) / Copy Caption / Web Share
+ *     a. Date ≥ 1995-06-16 → fetch APOD metadata → photo step
+ *     b. Date < 1995-06-16 → curated gallery (pre-APOD fallback)
+ *  2. Display photo + title
+ *  3. Keyword picker (suggestions derived from title + explanation)
+ *  4. Note input ("The day I was born")
+ *  5. "Preview my card" → card preview
+ *  6. Share modal → Download (gated for anonymous) / Copy Caption / Web Share
  *
  * Draft is written to localStorage on every note/keyword change.
  * If auth_return=1 is in the URL, we restore the draft and auto-trigger
@@ -25,10 +26,11 @@
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import DateInput from '@/components/DateInput'
 import PhotoDisplay from '@/components/PhotoDisplay'
 import KeywordPicker from '@/components/KeywordPicker'
-import ShareModal from '@/components/ShareModal'
+import CuratedGallery from '@/components/CuratedGallery'
 import { suggestKeywords } from '@/lib/keywords'
 import { saveDraft, loadDraft, clearDraft } from '@/lib/draft'
 import { trackEvent } from '@/lib/analytics'
@@ -36,6 +38,9 @@ import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { downloadCard, canvasToBlob } from '@/lib/canvas'
 import { saveNode } from '@/lib/nodes'
 import type { CardOptions } from '@/lib/canvas'
+
+// Dynamic import — only loaded when user opens share modal
+const ShareModal = dynamic(() => import('@/components/ShareModal'), { ssr: false })
 
 interface ApodData {
   date: string
@@ -45,7 +50,7 @@ interface ApodData {
   copyright?: string
 }
 
-type Step = 'input' | 'loading' | 'photo' | 'card'
+type Step = 'input' | 'loading' | 'curated' | 'photo' | 'card'
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 function ExplorePageInner() {
@@ -55,6 +60,7 @@ function ExplorePageInner() {
   const authErrorParam = searchParams.get('auth_error') === '1'
 
   const [step, setStep] = useState<Step>('input')
+  const [preApodDate, setPreApodDate] = useState<string | null>(null)
   const [apod, setApod] = useState<ApodData | null>(null)
   const [note, setNote] = useState('')
   const [keywords, setKeywords] = useState<string[]>([])
@@ -84,7 +90,6 @@ function ExplorePageInner() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const loggedIn = !!session?.user
       setIsLoggedIn(loggedIn)
-      // If a pending download is waiting for auth to resolve, trigger it now
       if (loggedIn && pendingDownloadRef.current && cardCanvasRef.current) {
         pendingDownloadRef.current = false
         triggerSaveAndDownload(cardCanvasRef.current)
@@ -104,8 +109,6 @@ function ExplorePageInner() {
     setNote(draft.note)
     setKeywords(draft.keywords)
     fetchApod(draft.date, draft.resolvedDate, draft.apodTitle, draft.apodCopyright)
-    // Open the share modal after photo has time to load — canvas will render,
-    // triggering handleCardReady which checks the pending flag
     setTimeout(() => setShowShareModal(true), 800)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReturn])
@@ -116,7 +119,6 @@ function ExplorePageInner() {
     title?: string,
     copyright?: string
   ) {
-    // If we already have resolved data (draft restore), skip the network call
     if (resolvedDate && title) {
       setApod({ date, resolvedDate, title, explanation: '', copyright })
       setSuggestions(suggestKeywords(title, ''))
@@ -157,6 +159,27 @@ function ExplorePageInner() {
     fetchApod(date)
   }
 
+  /** Called when user enters a pre-1995 date — show curated gallery */
+  function handlePreApodDate(date: string) {
+    setPreApodDate(date)
+    setStep('curated')
+    trackEvent('date_entered', { date, curated: true })
+  }
+
+  /** Called when user picks a photo from the curated gallery */
+  function handleCuratedPick(apodDate: string, title: string, credit: string) {
+    const userDate = preApodDate ?? apodDate
+    setApod({
+      date: userDate,
+      resolvedDate: apodDate,
+      title,
+      explanation: '',
+      copyright: credit,
+    })
+    setSuggestions(suggestKeywords(title, ''))
+    setStep('photo')
+  }
+
   // Persist draft to localStorage whenever note/keywords change
   useEffect(() => {
     if (!apod) return
@@ -170,7 +193,6 @@ function ExplorePageInner() {
     })
   }, [note, keywords, apod])
 
-  /** Called by ShareModal when the canvas is ready. Triggers auto-download if pending. */
   function handleCardReady(canvas: HTMLCanvasElement) {
     cardCanvasRef.current = canvas
     if (pendingDownloadRef.current && isLoggedIn) {
@@ -179,7 +201,6 @@ function ExplorePageInner() {
     }
   }
 
-  /** Save the node to DB + upload card + trigger browser download. */
   async function triggerSaveAndDownload(canvas: HTMLCanvasElement) {
     if (!apod) return
     const draft = loadDraft()
@@ -199,12 +220,22 @@ function ExplorePageInner() {
     }
   }
 
-  /** Called if auth completes while the modal is already open (fallback path). */
   async function handleAuthSuccess() {
     setIsLoggedIn(true)
     if (cardCanvasRef.current && apod) {
       await triggerSaveAndDownload(cardCanvasRef.current)
     }
+  }
+
+  async function handleSaveToTimeline() {
+    if (!apod || !cardCanvasRef.current) return
+    const draft = loadDraft()
+    if (!draft) return
+    setSaveState('saving')
+    const blob = await canvasToBlob(cardCanvasRef.current)
+    await saveNode(draft, blob)
+    clearDraft()
+    setSaveState('saved')
   }
 
   const cardOptions: CardOptions | null = apod
@@ -228,7 +259,7 @@ function ExplorePageInner() {
           ← Home
         </Link>
         <span
-          className="text-lg font-light tracking-widest"
+          className="font-cinzel text-lg tracking-widest"
           style={{ color: '#818cf8' }}
         >
           ✦ STARRY
@@ -238,10 +269,10 @@ function ExplorePageInner() {
             href="/profile"
             className="text-sm text-white/50 hover:text-white/80 transition-colors"
           >
-            My Stars
+            My Starry
           </Link>
         ) : (
-          <div className="w-14" />
+          <div className="w-16" />
         )}
       </header>
 
@@ -251,14 +282,21 @@ function ExplorePageInner() {
         {/* Save state banner */}
         {saveState === 'saved' && (
           <div
-            className="w-full max-w-sm mt-4 px-4 py-2.5 rounded-xl text-sm text-center"
+            className="w-full max-w-sm mt-4 px-4 py-3 rounded-xl text-sm text-center flex flex-col gap-1.5"
             style={{
               background: 'rgba(129,140,248,0.15)',
               border: '1px solid rgba(129,140,248,0.3)',
               color: '#a5b4fc',
             }}
           >
-            ✦ Saved to My Stars
+            <span>✦ Saved to My Starry</span>
+            <Link
+              href="/profile"
+              className="text-xs underline underline-offset-2 transition-opacity hover:opacity-80"
+              style={{ color: '#c7d2fe' }}
+            >
+              View in My Starry →
+            </Link>
           </div>
         )}
         {saveState === 'error' && (
@@ -272,7 +310,7 @@ function ExplorePageInner() {
           </p>
         )}
 
-        {/* Auth error (from expired/invalid Magic Link) */}
+        {/* Auth error */}
         {authErrorParam && (
           <p className="w-full max-w-sm mt-4 text-sm text-red-400 text-center">
             Sign-in link expired. Please try again.
@@ -293,6 +331,7 @@ function ExplorePageInner() {
 
             <DateInput
               onSubmit={handleDateSubmit}
+              onPreApod={handlePreApodDate}
               isLoading={step === 'loading'}
               defaultDate={defaultDate}
             />
@@ -303,15 +342,25 @@ function ExplorePageInner() {
           </div>
         )}
 
+        {/* Step: Curated gallery (pre-1995 dates) */}
+        {step === 'curated' && (
+          <div className="w-full max-w-sm pt-8">
+            <CuratedGallery
+              onPick={handleCuratedPick}
+              onBack={() => setStep('input')}
+            />
+          </div>
+        )}
+
         {/* Step: Photo + keywords + note */}
         {step === 'photo' && apod && (
           <div className="w-full max-w-sm flex flex-col gap-6 pt-8">
             {/* Back button */}
             <button
-              onClick={() => setStep('input')}
+              onClick={() => setStep(preApodDate ? 'curated' : 'input')}
               className="self-start text-sm text-white/40 hover:text-white/70 transition-colors"
             >
-              ← Change date
+              ← {preApodDate ? 'Back to gallery' : 'Change date'}
             </button>
 
             {/* APOD photo */}
@@ -365,7 +414,7 @@ function ExplorePageInner() {
         )}
       </div>
 
-      {/* Share modal */}
+      {/* Share modal (dynamically loaded) */}
       {showShareModal && cardOptions && (
         <ShareModal
           options={cardOptions}
@@ -373,6 +422,7 @@ function ExplorePageInner() {
           onClose={() => setShowShareModal(false)}
           onAuthSuccess={handleAuthSuccess}
           onCardReady={handleCardReady}
+          onSaveToTimeline={handleSaveToTimeline}
         />
       )}
     </main>

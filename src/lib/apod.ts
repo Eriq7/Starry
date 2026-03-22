@@ -16,6 +16,16 @@ import { createServiceClient } from './supabase-server'
 import { APOD_START_DATE } from './constants'
 
 export { APOD_START_DATE }
+
+/**
+ * Returns today's date in YYYY-MM-DD format using US Eastern time.
+ * NASA APOD updates at midnight ET, so using UTC can return "tomorrow"
+ * between ~8pm–midnight ET, causing a future-date error from NASA.
+ */
+export function getEasternToday(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+}
+
 const APOD_API_BASE = 'https://api.nasa.gov/planetary/apod'
 const MAX_FALLBACK_ATTEMPTS = 7
 

@@ -2,35 +2,51 @@
  * globals.css
  *
  * Global stylesheet for Starry.
- * Tailwind v4 base import + custom CSS variables for the space/dark theme.
+ * Tailwind v4 base import + CSS custom properties for the space/dark theme.
+ * Design tokens, animation keyframes, and utility classes.
  */
 
 @import "tailwindcss";
 
+/* ─── Design tokens ─────────────────────────────────────────── */
 :root {
-  --color-space: #030712;
-  --color-nebula: #818cf8;
+  --color-space:    #030712;
+  --color-space-2:  #0a0a1a;
+  --color-nebula:   #818cf8;
+  --color-nebula-2: #a5b4fc;
+  --color-nebula-3: #c7d2fe;
   --color-stardust: #e0e4ff;
+  --color-void:     #000000;
+
+  --gradient-primary: linear-gradient(135deg, #4f46e5, #7c3aed);
+  --gradient-nebula:  linear-gradient(135deg, rgba(79,70,229,0.3), rgba(124,58,237,0.3));
+  --gradient-card:    linear-gradient(160deg, #0f0f2e 0%, #030712 100%);
+
+  --shadow-nebula:    0 0 32px rgba(99,102,241,0.3);
+  --shadow-nebula-lg: 0 0 60px rgba(99,102,241,0.15);
+
+  --radius-card: 1.5rem;
+  --radius-pill: 9999px;
 }
 
+/* ─── Base ──────────────────────────────────────────────────── */
 html {
   color-scheme: dark;
+  scroll-behavior: smooth;
 }
 
 body {
   background-color: var(--color-space);
   color: #f9fafb;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Smooth scrolling for timeline */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Custom scrollbar — space themed */
+/* ─── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: #0a0a1a;
@@ -41,4 +57,105 @@ html {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #4a4a8a;
+}
+
+/* Hide scrollbar for horizontal filter rows */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* ─── Animations ────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes star-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.15); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease forwards;
+}
+
+.animate-star-pulse {
+  animation: star-pulse 3s ease-in-out infinite;
+}
+
+@keyframes bounce-down {
+  0%, 100% { transform: translateY(0); opacity: 0.7; }
+  50%       { transform: translateY(8px); opacity: 1; }
+}
+
+.animate-bounce-down {
+  animation: bounce-down 1.4s ease-in-out infinite;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; pointer-events: none; }
+}
+
+.animate-fade-out {
+  animation: fade-out 0.8s ease forwards;
+}
+
+/* Staggered children */
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 80ms; }
+.stagger > *:nth-child(3) { animation-delay: 160ms; }
+.stagger > *:nth-child(4) { animation-delay: 240ms; }
+.stagger > *:nth-child(5) { animation-delay: 320ms; }
+
+/* Skeleton shimmer for image placeholders */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease infinite;
+}
+
+/* ─── Safe area padding for notched devices ─────────────────── */
+.pb-safe {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+/* ─── Line clamp utility ────────────────────────────────────── */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Font utilities ────────────────────────────────────────── */
+.font-cinzel {
+  font-family: var(--font-cinzel), serif;
+}
+
+/* ─── Scroll snap ───────────────────────────────────────────── */
+/* Prevent momentum scroll jank on iOS Safari for the timeline */
+.snap-y {
+  -webkit-overflow-scrolling: touch;
 }

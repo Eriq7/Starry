@@ -43,7 +43,28 @@ Next.js App Router API routes for Starry.
 - 404 if node not found or no card uploaded yet
 
 ### `/api/og`
-OG image generation (Phase 2 — not yet implemented).
+**GET** — OG image generation for gift landing pages.
+
+- Query params: `date` (YYYY-MM-DD), `name` (recipient name)
+- Returns 1200×630 PNG via `next/og` `ImageResponse`
+- Fetches the APOD image and embeds it blurred as background
+- Used in `gift/[id]/page.tsx` `generateMetadata()`
+- Edge runtime
+
+### `/api/gifts`
+**POST** — Create a shareable gift link for a friend.
+
+- Auth required (session cookie)
+- Body: `{ recipientName, eventDate, message? }`
+- Resolves APOD for the date, generates 8-char gift ID
+- Inserts into `gifts` table; tracks `gift_created` event
+- Returns `{ giftId, giftUrl }`
+
+### `/api/gifts/[id]/view`
+**PATCH** — Record first view of a gift.
+
+- No auth required (public)
+- Sets `viewed_at` timestamp on the gift row (idempotent — only if NULL)
 
 ## Error handling
 

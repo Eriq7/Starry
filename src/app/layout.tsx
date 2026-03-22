@@ -4,12 +4,24 @@
  * Root layout for Starry. Sets global metadata, loads global CSS,
  * and wraps all pages in the dark space-themed shell.
  *
+ * Fonts:
+ *  - Cinzel Decorative (--font-cinzel): ornate serif for headings
+ *  - System sans-serif: body text (performance + readability)
+ *
  * Note: No persistent navigation — pages are designed as immersive full-screen
  * experiences. Navigation is contextual per page.
  */
 
 import type { Metadata, Viewport } from 'next'
+import { Cinzel_Decorative } from 'next/font/google'
 import './globals.css'
+
+const cinzelDecorative = Cinzel_Decorative({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-cinzel',
+})
 
 export const metadata: Metadata = {
   title: {
@@ -41,7 +53,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen antialiased">
+      <body className={`${cinzelDecorative.variable} min-h-screen antialiased`}>
         {children}
       </body>
     </html>

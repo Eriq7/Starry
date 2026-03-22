@@ -18,3 +18,5 @@ Starry (星空) — binds NASA APOD astronomy photos with users' life moments. U
 2. **File-level comments**: Every source file must begin with a comment block describing what this specific file does, its main responsibilities, and any important caveats.
 
 3. **Address the user**: Always address me as "瑞" at the start of every reply.
+
+4. **Plan management**: At the start of every session, check for `PLAN.md` in the project root. If it does not exist, proactively create it by asking the user to outline the project phases before proceeding with any implementation. If it exists, read it in full to understand the overall plan, current phase, and completion status. After finishing any phase or significant milestone, immediately update the corresponding entry in `PLAN.md` with a ✅ status and a brief note on what was completed.

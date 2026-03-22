@@ -4,11 +4,11 @@
  * Share modal — appears after the user previews their card.
  * Three actions:
  *  1. Download image (gated behind auth for anonymous users)
- *  2. Copy caption (always available — drives organic sharing)
+ *  2. Add to My Starry (saves card to timeline DB; opens auth for anonymous users)
  *  3. Web Share API (system share sheet on mobile; download fallback on desktop)
  *
- * For anonymous users, Download triggers the auth modal.
- * Caption copy and Web Share always work — important for virality.
+ * For anonymous users, Download and "Add to My Starry" trigger the auth modal.
+ * Web Share always works — important for virality.
  */
 
 'use client'
@@ -27,13 +27,15 @@ interface ShareModalProps {
   onAuthSuccess?: () => void
   /** Called with the canvas element once the card has been rendered */
   onCardReady?: (canvas: HTMLCanvasElement) => void
+  /** Called when user clicks "Add to My Starry" and is logged in */
+  onSaveToTimeline?: () => Promise<void>
 }
 
 function buildCaption(note: string, title: string): string {
   if (note.trim()) {
-    return `${note.trim()}\n\nThe universe that day: "${title}"\n\n✦ starry.app`
+    return `${note.trim()}\n\nThe universe that day: "${title}"\n\n✦ Starry`
   }
-  return `"${title}" — captured by NASA.\n\nWhat did your universe look like?\n\n✦ starry.app`
+  return `"${title}" — captured by NASA.\n\nWhat did your universe look like?\n\n✦ Starry`
 }
 
 export default function ShareModal({
@@ -42,10 +44,11 @@ export default function ShareModal({
   onClose,
   onAuthSuccess,
   onCardReady,
+  onSaveToTimeline,
 }: ShareModalProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [copied, setCopied] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
+  const [timelineSaveState, setTimelineSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const caption = buildCaption(options.note, options.apodTitle)
   const filename = `starry-${options.date}.png`
@@ -60,11 +63,20 @@ export default function ShareModal({
     trackEvent('card_downloaded', { date: options.date })
   }
 
-  async function handleCopyCaption() {
-    await navigator.clipboard.writeText(caption)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-    trackEvent('caption_copied', { date: options.date })
+  async function handleAddToTimeline() {
+    if (!isLoggedIn) {
+      setShowAuth(true)
+      return
+    }
+    if (timelineSaveState === 'saving' || timelineSaveState === 'saved') return
+    setTimelineSaveState('saving')
+    try {
+      await onSaveToTimeline?.()
+      setTimelineSaveState('saved')
+      trackEvent('card_saved_to_timeline', { date: options.date })
+    } catch {
+      setTimelineSaveState('error')
+    }
   }
 
   async function handleShare() {
@@ -91,6 +103,16 @@ export default function ShareModal({
     await handleDownload()
     trackEvent('card_shared', { date: options.date, method: 'download_fallback' })
   }
+
+  const timelineIcon =
+    timelineSaveState === 'saving' ? '⏳' :
+    timelineSaveState === 'saved'  ? '✅' : '⭐'
+
+  const timelineLabel =
+    timelineSaveState === 'saving' ? 'Saving…' :
+    timelineSaveState === 'saved'  ? 'Added!' :
+    timelineSaveState === 'error'  ? 'Error' :
+    !isLoggedIn                    ? 'Sign in' : 'Add to My Starry'
 
   return (
     <>
@@ -137,17 +159,18 @@ export default function ShareModal({
               </span>
             </button>
 
-            {/* Copy Caption */}
+            {/* Add to My Starry */}
             <button
-              onClick={handleCopyCaption}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-2xl text-center transition-all duration-150 hover:scale-105 active:scale-95"
+              onClick={handleAddToTimeline}
+              disabled={timelineSaveState === 'saving' || timelineSaveState === 'saved'}
+              className="flex flex-col items-center gap-1.5 p-3 rounded-2xl text-center transition-all duration-150 hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
               style={{
                 background: 'rgba(129,140,248,0.12)',
                 border: '1px solid rgba(129,140,248,0.2)',
               }}
             >
-              <span className="text-xl">{copied ? '✅' : '📋'}</span>
-              <span className="text-xs text-white/70">{copied ? 'Caption copied!' : 'Caption'}</span>
+              <span className="text-xl">{timelineIcon}</span>
+              <span className="text-xs text-white/70 leading-tight text-center">{timelineLabel}</span>
             </button>
 
             {/* Share */}
@@ -173,7 +196,7 @@ export default function ShareModal({
         </div>
       </div>
 
-      {/* Auth modal (shown when anonymous user taps Download) */}
+      {/* Auth modal (shown when anonymous user taps Download or Add to My Starry) */}
       {showAuth && (
         <AuthModal
           onClose={() => setShowAuth(false)}
