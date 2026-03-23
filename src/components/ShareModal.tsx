@@ -16,6 +16,7 @@
 import { useRef, useState } from 'react'
 import ShareCard from './ShareCard'
 import AuthModal from './AuthModal'
+import MeteorInput from './MeteorInput'
 import { downloadCard, canvasToBlob, type CardOptions } from '@/lib/canvas'
 import { trackEvent } from '@/lib/analytics'
 
@@ -48,6 +49,7 @@ export default function ShareModal({
 }: ShareModalProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [showAuth, setShowAuth] = useState(false)
+  const [showMeteorInput, setShowMeteorInput] = useState(false)
   const [timelineSaveState, setTimelineSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
   const caption = buildCaption(options.note, options.apodTitle)
@@ -193,6 +195,21 @@ export default function ShareModal({
               Sign in to save and download your card
             </p>
           )}
+
+          {/* Meteor wish CTA — shown when logged in */}
+          {isLoggedIn && (
+            <button
+              onClick={() => setShowMeteorInput(true)}
+              className="w-full py-2.5 rounded-xl text-sm transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+              style={{
+                background: 'rgba(129,140,248,0.08)',
+                border: '1px solid rgba(129,140,248,0.2)',
+                color: 'rgba(199,210,254,0.8)',
+              }}
+            >
+              Send a meteor wish ✦
+            </button>
+          )}
         </div>
       </div>
 
@@ -204,6 +221,17 @@ export default function ShareModal({
             setShowAuth(false)
             onAuthSuccess?.()
           }}
+        />
+      )}
+
+      {/* Meteor wish composer */}
+      {showMeteorInput && (
+        <MeteorInput
+          displayName={options.displayName ?? ''}
+          eventDate={options.date}
+          isLoggedIn={isLoggedIn}
+          onClose={() => setShowMeteorInput(false)}
+          onSuccess={() => setShowMeteorInput(false)}
         />
       )}
     </>

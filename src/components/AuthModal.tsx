@@ -2,15 +2,15 @@
  * components/AuthModal.tsx
  *
  * Magic Link authentication modal.
- * Shown when an anonymous user attempts a gated action (Download / Save).
+ * Shown when an anonymous user attempts a gated action (Download / Save / Meteor).
  *
  * Flow:
  *  1. User enters email → Supabase sends Magic Link
- *  2. User clicks link in email → /auth/callback route → /explore?auth_return=1
- *  3. Explore page detects auth_return, reads localStorage draft, re-triggers save flow
+ *  2. User clicks link in email → /auth/callback route → {returnTo}?auth_return=1
+ *  3. Target page detects auth_return, reads localStorage draft, re-triggers action
  *
- * The draft is preserved in localStorage before this modal is shown
- * (the explore page writes it whenever note/keywords change).
+ * The draft is preserved in localStorage before this modal is shown.
+ * Accepts an optional `returnTo` prop (defaults to '/explore') for dynamic redirects.
  */
 
 'use client'
@@ -21,9 +21,11 @@ import { getSupabaseBrowser } from '@/lib/supabase-browser'
 interface AuthModalProps {
   onClose: () => void
   onSuccess?: () => void
+  /** Where to redirect after Magic Link — defaults to '/explore' */
+  returnTo?: string
 }
 
-export default function AuthModal({ onClose }: AuthModalProps) {
+export default function AuthModal({ onClose, returnTo = '/explore' }: AuthModalProps) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -38,7 +40,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       (typeof window !== 'undefined' ? window.location.origin : '')
-    const redirectTo = `${baseUrl}/auth/callback?next=/explore`
+    const redirectTo = `${baseUrl}/auth/callback?next=${returnTo}`
 
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
@@ -124,7 +126,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
             <p className="text-sm text-white/50">
               We sent a magic link to <strong className="text-white/80">{email}</strong>.
               <br />
-              Click it to return and save your card.
+              Click it to return and continue.
             </p>
             <p className="text-xs text-white/25 pt-2">
               Your draft is saved — it'll be here when you return.

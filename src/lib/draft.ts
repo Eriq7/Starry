@@ -55,3 +55,43 @@ export function clearDraft(): void {
 export function hasDraft(): boolean {
   return loadDraft() !== null
 }
+
+// ─── Meteor Draft ────────────────────────────────────────────────────────────
+
+const METEOR_DRAFT_KEY = 'starry_meteor_draft'
+
+export interface MeteorDraft {
+  message: string
+  category: 'wish' | 'reflection' | 'warmth'
+  displayName: string
+  eventDate?: string
+  savedAt: number
+}
+
+export function saveMeteorDraft(draft: Omit<MeteorDraft, 'savedAt'>): void {
+  if (typeof window === 'undefined') return
+  const full: MeteorDraft = { ...draft, savedAt: Date.now() }
+  localStorage.setItem(METEOR_DRAFT_KEY, JSON.stringify(full))
+}
+
+export function loadMeteorDraft(): MeteorDraft | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(METEOR_DRAFT_KEY)
+    if (!raw) return null
+    const draft = JSON.parse(raw) as MeteorDraft
+    // Discard drafts older than 24 hours
+    if (Date.now() - draft.savedAt > 24 * 60 * 60 * 1000) {
+      clearMeteorDraft()
+      return null
+    }
+    return draft
+  } catch {
+    return null
+  }
+}
+
+export function clearMeteorDraft(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(METEOR_DRAFT_KEY)
+}

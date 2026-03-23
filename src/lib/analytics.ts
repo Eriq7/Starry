@@ -24,6 +24,8 @@ export type EventType =
   | 'gift_viewed'
   | 'gift_converted'
   | 'card_saved_to_timeline'
+  | 'meteor_sent'
+  | 'meteor_page_view'
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return 'server'

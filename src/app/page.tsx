@@ -31,9 +31,24 @@ async function getTodayApod() {
   }
 }
 
+async function getMeteorCount(): Promise<number> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+    const res = await fetch(`${baseUrl}/api/meteors/count`, {
+      next: { revalidate: 43200 },
+    })
+    if (!res.ok) return 0
+    const data = await res.json()
+    return data.count ?? 0
+  } catch {
+    return 0
+  }
+}
+
 export default async function HomePage() {
   const apod = await getTodayApod()
   const today = getEasternToday()
+  const meteorCount = await getMeteorCount()
 
   const formattedDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -85,6 +100,12 @@ export default async function HomePage() {
               Gift ✦
             </Link>
             <Link
+              href="/meteors"
+              className="text-sm text-white/50 hover:text-white/80 transition-colors"
+            >
+              Wishes ✦
+            </Link>
+            <Link
               href="/profile"
               className="text-sm text-white/50 hover:text-white/80 transition-colors"
             >
@@ -132,6 +153,16 @@ export default async function HomePage() {
           >
             Explore my universe
           </Link>
+
+          {meteorCount > 0 && (
+            <Link
+              href="/meteors"
+              className="mt-4 text-sm transition-colors hover:opacity-80"
+              style={{ color: 'rgba(165,180,252,0.7)' }}
+            >
+              ✦ {meteorCount.toLocaleString()} wishes have been sent into the sky
+            </Link>
+          )}
         </div>
 
         {/* Footer */}

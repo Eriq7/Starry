@@ -140,6 +140,52 @@ Upgrade the "My Stars" page (`/profile`) into a full-screen vertical scroll time
 
 ---
 
+---
+
+## Sprint 15: Meteor Shower Messages (流星雨心声) ✅
+
+Community message board where users send anonymous 50-char wishes that fly as shooting stars on `/meteors`.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 1.1 | SQL migration — `meteors` table + RLS policies (manual, run in Supabase Dashboard) | ✅ (manual) |
+| 1.2 | `src/lib/profanity.ts` — word-boundary regex filter (~80 English terms) | ✅ |
+| 1.3 | `POST /api/meteors` — auth-gated submit with profanity check + analytics | ✅ |
+| 1.4 | `GET /api/meteors` — public paginated fetch (limit/before cursor) | ✅ |
+| 1.5 | `GET /api/meteors/count` — cumulative total with 5-min cache | ✅ |
+| 1.6 | `analytics.ts` — added `meteor_sent` + `meteor_page_view` event types | ✅ |
+| 2.0 | `AuthModal.tsx` — `returnTo` prop for dynamic redirect; `draft.ts` — MeteorDraft interface + save/load/clear | ✅ |
+| 2.1 | `MeteorInput.tsx` — category picker + 50-char input + auth gate + prefill support | ✅ |
+| 2.2 | `ShareModal.tsx` — "Send a meteor wish ✦" CTA when logged in | ✅ |
+| 2.3 | `explore/page.tsx` — meteor CTA in saved banner + "Wishes" nav link | ✅ |
+| 3.1 | `MeteorShower.tsx` — hybrid canvas/DOM: star bg + meteor trails + glowing dots + message cards | ✅ |
+| 3.2 | `MeteorOnboarding.tsx` — first-visit hint (5s auto-fade, localStorage flag) | ✅ |
+| 3.3 | `app/meteors/page.tsx` + `client.tsx` — full-screen meteor page + auth return handling | ✅ |
+| 4.1 | `page.tsx` — "Wishes ✦" nav link between Gift and My Starry | ✅ |
+| 4.2 | `page.tsx` — cumulative meteor count below CTA, links to `/meteors` | ✅ |
+| 4.3 | `explore/page.tsx` — "Wishes" nav link in explore header | ✅ |
+| 5.1 | Seed messages — insert 5-10 sample meteors in Supabase Dashboard (manual) | ✅ (manual) |
+
+---
+
+## Sprint 15 Bugfix: MeteorInput displayName + Immediate Feedback ✅
+
+| Fix | Description | Status |
+|-----|-------------|--------|
+| 1 | `MeteorInput.tsx` — added editable `nameVal` state; name input shown when `displayName` prop absent; `effectiveName` used in draft/API; `onSuccess` now passes `{id, displayName, message, category}` | ✅ |
+| 2 | `MeteorShower.tsx` — added `newMeteor` prop for immediate launch; `processedIdsRef` prevents duplicates; `messages` effect only initializes queue once (no re-fly on update) | ✅ |
+| 3 | `client.tsx` — removed `displayName` state; added `prefillDisplayName` + `newMeteor` state; `onSuccess` sets `newMeteor` directly instead of re-fetching; auth return passes `prefillDisplayName` | ✅ |
+
+---
+
+## Sprint 16: Analytics Bug Fix — Remove Duplicate `meteor_sent` ✅
+
+| Fix | Description | Status |
+|-----|-------------|--------|
+| 1 | `MeteorInput.tsx` — removed `trackEvent('meteor_sent', { category })` frontend call; backend `POST /api/meteors` already writes the event with more context (`meteorId`, `user_id`); removed now-unused `trackEvent` import | ✅ |
+
+---
+
 ## Deployment ✅
 
 | Item | Detail |

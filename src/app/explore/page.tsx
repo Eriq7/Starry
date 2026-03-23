@@ -34,6 +34,7 @@ import KeywordPicker from '@/components/KeywordPicker'
 import CuratedGallery from '@/components/CuratedGallery'
 import { suggestKeywords } from '@/lib/keywords'
 import { saveDraft, loadDraft, clearDraft } from '@/lib/draft'
+import MeteorInput from '@/components/MeteorInput'
 import { trackEvent } from '@/lib/analytics'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { downloadCard, canvasToBlob } from '@/lib/canvas'
@@ -75,6 +76,7 @@ function ExplorePageInner() {
   // Refs for the auto-save-and-download flow after Magic Link return
   const cardCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const pendingDownloadRef = useRef(false)
+  const [showMeteorInput, setShowMeteorInput] = useState(false)
 
   // Track page view on mount
   useEffect(() => {
@@ -277,16 +279,24 @@ function ExplorePageInner() {
         >
           ✦ STARRY
         </span>
-        {isLoggedIn ? (
+        <div className="flex items-center gap-4">
           <Link
-            href="/profile"
+            href="/meteors"
             className="text-sm text-white/50 hover:text-white/80 transition-colors"
           >
-            My Starry
+            Wishes
           </Link>
-        ) : (
-          <div className="w-16" />
-        )}
+          {isLoggedIn ? (
+            <Link
+              href="/profile"
+              className="text-sm text-white/50 hover:text-white/80 transition-colors"
+            >
+              My Starry
+            </Link>
+          ) : (
+            <div className="w-16" />
+          )}
+        </div>
       </header>
 
       {/* Main content */}
@@ -310,6 +320,13 @@ function ExplorePageInner() {
             >
               View in My Starry →
             </Link>
+            <button
+              onClick={() => setShowMeteorInput(true)}
+              className="text-xs underline underline-offset-2 transition-opacity hover:opacity-80"
+              style={{ color: '#a5b4fc' }}
+            >
+              Send a meteor wish ✦
+            </button>
           </div>
         )}
         {saveState === 'error' && (
@@ -456,6 +473,17 @@ function ExplorePageInner() {
           onAuthSuccess={handleAuthSuccess}
           onCardReady={handleCardReady}
           onSaveToTimeline={handleSaveToTimeline}
+        />
+      )}
+
+      {/* Meteor wish composer */}
+      {showMeteorInput && (
+        <MeteorInput
+          displayName={displayName}
+          eventDate={apod?.resolvedDate}
+          isLoggedIn={isLoggedIn}
+          onClose={() => setShowMeteorInput(false)}
+          onSuccess={() => setShowMeteorInput(false)}
         />
       )}
     </main>
