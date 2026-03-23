@@ -10,6 +10,9 @@
  *  2. Landing  — trail fades, DOM dot appears at endpoint (x2, y2)
  *  3. Resting  — dot pulses with CSS animation, clickable
  *  4. Expanded — click opens message card, click outside collapses
+ *  5. Departing — after 5s without interaction (or after card is closed),
+ *                 dot flies off-screen along original trajectory; message
+ *                 is recycled back into the queue so it can re-appear.
  *
  * Data: fetches GET /api/meteors?limit=30 on mount. Launches one meteor every
  * 2–3 seconds until all messages have landed.
@@ -18,6 +21,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import AsciiNebulaBackground from './AsciiNebulaBackground'
 
 interface MeteorMessage {
   id: string
@@ -38,6 +42,20 @@ interface FlyingMeteor {
   id: string
   x1: number; y1: number
   x2: number; y2: number
+  ctrlX: number; ctrlY: number
+  progress: number
+  speed: number
+  width: number
+  angle: number
+  message: MeteorMessage
+}
+
+/** A dot that has timed out and is now flying off-screen */
+interface DepartingMeteor {
+  id: string
+  x1: number; y1: number
+  x2: number; y2: number
+  ctrlX: number; ctrlY: number
   progress: number
   speed: number
   width: number
@@ -48,6 +66,12 @@ interface Star {
   x: number; y: number; r: number
   baseOpacity: number; opacity: number
   phase: number; speed: number
+}
+
+/** Metadata stored per landed dot for auto-departure logic */
+interface LandedMeta {
+  landedAt: number
+  angle: number
 }
 
 const CATEGORY_ICON: Record<string, string> = {
@@ -71,8 +95,12 @@ interface MeteorShowerProps {
 export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [landedDots, setLandedDots] = useState<LandedDot[]>([])
+  const landedDotsRef = useRef<LandedDot[]>([])  // mirror for animation loop
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const expandedIdRef = useRef<string | null>(null)  // mirror for animation loop
   const flyingRef = useRef<FlyingMeteor[]>([])
+  const departingRef = useRef<DepartingMeteor[]>([])
+  const landedMetaRef = useRef<Map<string, LandedMeta>>(new Map())
   const starsRef = useRef<Star[]>([])
   const animIdRef = useRef<number>(0)
   const messageQueueRef = useRef<MeteorMessage[]>([])
@@ -83,6 +111,24 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
   /** True once the initial message queue has been populated */
   const initializedRef = useRef(false)
 
+  // Keep refs in sync with state
+  useEffect(() => {
+    landedDotsRef.current = landedDots
+  }, [landedDots])
+
+  useEffect(() => {
+    expandedIdRef.current = expandedId
+  }, [expandedId])
+
+  /** Quadratic bezier interpolation: position at t along curve p0→p1(ctrl)→p2 */
+  function quadBezier(t: number, p0: number, p1: number, p2: number): number {
+    const u = 1 - t
+    return u * u * p0 + 2 * u * t * p1 + t * t * p2
+  }
+
+  /** Tail occupies this fraction of the total trajectory length */
+  const TAIL_RATIO = 0.30
+
   // Build endpoint for meteor (endpoint is lower-left of canvas)
   function buildMeteor(msg: MeteorMessage, canvas: HTMLCanvasElement): FlyingMeteor {
     const w = canvas.width
@@ -92,15 +138,25 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
     const startY = h * (Math.random() * 0.45)
     const len = 100 + Math.random() * 150
     const angle = Math.PI * (0.55 + Math.random() * 0.18) // ~100-113° lower-left
+    const x2 = startX + Math.cos(angle) * len
+    const y2 = startY + Math.sin(angle) * len
+    // Slight perpendicular offset for natural arc (3-8% of length)
+    const perpAngle = angle + Math.PI / 2
+    const curveOffset = len * (0.03 + Math.random() * 0.05) * (Math.random() < 0.5 ? 1 : -1)
+    const ctrlX = (startX + x2) / 2 + Math.cos(perpAngle) * curveOffset
+    const ctrlY = (startY + y2) / 2 + Math.sin(perpAngle) * curveOffset
     return {
       id: msg.id,
       x1: startX,
       y1: startY,
-      x2: startX + Math.cos(angle) * len,
-      y2: startY + Math.sin(angle) * len,
+      x2,
+      y2,
+      ctrlX,
+      ctrlY,
       progress: 0,
       speed: 0.008 + Math.random() * 0.006,
       width: 1.5 + Math.random() * 1.2,
+      angle,
       message: msg,
     }
   }
@@ -118,33 +174,18 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
     }))
   }
 
-  function drawNebula(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-    const regions = [
-      { x: canvas.width * 0.15, y: canvas.height * 0.25, rx: 220, ry: 160, color: '67,56,202' },
-      { x: canvas.width * 0.78, y: canvas.height * 0.6,  rx: 180, ry: 130, color: '109,40,217' },
-      { x: canvas.width * 0.5,  y: canvas.height * 0.85, rx: 260, ry: 120, color: '30,58,138' },
-    ]
-    for (const r of regions) {
-      const g = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, Math.max(r.rx, r.ry))
-      g.addColorStop(0,   `rgba(${r.color},0.06)`)
-      g.addColorStop(0.5, `rgba(${r.color},0.03)`)
-      g.addColorStop(1,   `rgba(${r.color},0)`)
-      ctx.save()
-      ctx.scale(r.rx / Math.max(r.rx, r.ry), r.ry / Math.max(r.rx, r.ry))
-      ctx.fillStyle = g
-      ctx.beginPath()
-      ctx.arc(
-        r.x / (r.rx / Math.max(r.rx, r.ry)),
-        r.y / (r.ry / Math.max(r.rx, r.ry)),
-        Math.max(r.rx, r.ry), 0, Math.PI * 2
-      )
-      ctx.fill()
-      ctx.restore()
-    }
-  }
-
   const handleDotClick = useCallback((id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id))
+    setExpandedId((prev) => {
+      if (prev === id) {
+        // Closing card — reset the 5s departure timer for this dot
+        const meta = landedMetaRef.current.get(id)
+        if (meta) {
+          landedMetaRef.current.set(id, { ...meta, landedAt: Date.now() })
+        }
+        return null
+      }
+      return id
+    })
   }, [])
 
   // Initialize the queue once, when we receive the first non-empty messages list.
@@ -190,7 +231,30 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
       }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      drawNebula(ctx, canvas)
+
+      // Subtle nebula gradient regions
+      const regions = [
+        { x: canvas.width * 0.15, y: canvas.height * 0.25, rx: 220, ry: 160, color: '67,56,202' },
+        { x: canvas.width * 0.78, y: canvas.height * 0.6,  rx: 180, ry: 130, color: '109,40,217' },
+        { x: canvas.width * 0.5,  y: canvas.height * 0.85, rx: 260, ry: 120, color: '30,58,138' },
+      ]
+      for (const r of regions) {
+        const g = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, Math.max(r.rx, r.ry))
+        g.addColorStop(0,   `rgba(${r.color},0.06)`)
+        g.addColorStop(0.5, `rgba(${r.color},0.03)`)
+        g.addColorStop(1,   `rgba(${r.color},0)`)
+        ctx.save()
+        ctx.scale(r.rx / Math.max(r.rx, r.ry), r.ry / Math.max(r.rx, r.ry))
+        ctx.fillStyle = g
+        ctx.beginPath()
+        ctx.arc(
+          r.x / (r.rx / Math.max(r.rx, r.ry)),
+          r.y / (r.ry / Math.max(r.rx, r.ry)),
+          Math.max(r.rx, r.ry), 0, Math.PI * 2
+        )
+        ctx.fill()
+        ctx.restore()
+      }
 
       // Twinkling stars
       const t = ts / 1000
@@ -222,11 +286,14 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
         sh.progress = Math.min(1, sh.progress + sh.speed)
         const p = sh.progress
 
-        // Draw trail
-        const cx = sh.x1 + (sh.x2 - sh.x1) * p
-        const cy = sh.y1 + (sh.y2 - sh.y1) * p
+        // Fixed-length tail: head and tail both slide along bezier curve
+        const tailP = Math.max(0, p - TAIL_RATIO)
+        const hx = quadBezier(p,     sh.x1, sh.ctrlX, sh.x2)
+        const hy = quadBezier(p,     sh.y1, sh.ctrlY, sh.y2)
+        const tx = quadBezier(tailP, sh.x1, sh.ctrlX, sh.x2)
+        const ty = quadBezier(tailP, sh.y1, sh.ctrlY, sh.y2)
 
-        const grad = ctx.createLinearGradient(sh.x2, sh.y2, sh.x1, sh.y1)
+        const grad = ctx.createLinearGradient(tx, ty, hx, hy)
         grad.addColorStop(0,   'rgba(255,255,255,0)')
         grad.addColorStop(0.6, 'rgba(200,210,255,0.35)')
         grad.addColorStop(1,   'rgba(255,255,255,0.75)')
@@ -236,15 +303,16 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
         ctx.lineWidth = sh.width
         ctx.lineCap = 'round'
         ctx.beginPath()
-        ctx.moveTo(sh.x1, sh.y1)
-        ctx.lineTo(cx, cy)
+        ctx.moveTo(tx, ty)
+        ctx.lineTo(hx, hy)
         ctx.stroke()
 
-        // Bright head at current position
-        ctx.globalAlpha = 0.9 * (1 - Math.abs(p - 0.5) * 1.5)
+        // Bright head — stays bright, fades only in last 10% of journey
+        const dotAlpha = p > 0.9 ? 0.9 * (1 - (p - 0.9) / 0.1) : 0.9
+        ctx.globalAlpha = dotAlpha
         ctx.fillStyle = 'rgba(255,255,255,0.95)'
         ctx.beginPath()
-        ctx.arc(cx, cy, sh.width + 0.5, 0, Math.PI * 2)
+        ctx.arc(hx, hy, sh.width + 0.5, 0, Math.PI * 2)
         ctx.fill()
         ctx.restore()
 
@@ -257,6 +325,10 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
 
       // Convert completed meteors to landed DOM dots
       if (completed.length > 0) {
+        const now = Date.now()
+        for (const sh of completed) {
+          landedMetaRef.current.set(sh.id, { landedAt: now, angle: sh.angle })
+        }
         setLandedDots((prev) => [
           ...prev,
           ...completed.map((sh) => ({
@@ -267,6 +339,92 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
           })),
         ])
       }
+
+      // ── Auto-departure: check for dots resting > 5 seconds ──
+      const now = Date.now()
+      const idsToDepart: string[] = []
+      for (const [id, meta] of landedMetaRef.current) {
+        if (now - meta.landedAt > 5000 && expandedIdRef.current !== id) {
+          idsToDepart.push(id)
+        }
+      }
+
+      if (idsToDepart.length > 0) {
+        const toRemove = new Set(idsToDepart)
+        const currentDots = landedDotsRef.current
+
+        for (const id of idsToDepart) {
+          const dot = currentDots.find((d) => d.id === id)
+          const meta = landedMetaRef.current.get(id)!
+          landedMetaRef.current.delete(id)
+          // Remove from processedIds so this message can be recycled
+          processedIdsRef.current.delete(id)
+
+          if (dot) {
+            // Extend trajectory to off-screen
+            const extLen = Math.max(canvas.width, canvas.height) * 1.4
+            const dx2 = dot.x + Math.cos(meta.angle) * extLen
+            const dy2 = dot.y + Math.sin(meta.angle) * extLen
+            const perpAngle = meta.angle + Math.PI / 2
+            const curveOffset = extLen * 0.04 * (Math.random() < 0.5 ? 1 : -1)
+            departingRef.current.push({
+              id: dot.id,
+              x1: dot.x,
+              y1: dot.y,
+              x2: dx2,
+              y2: dy2,
+              ctrlX: (dot.x + dx2) / 2 + Math.cos(perpAngle) * curveOffset,
+              ctrlY: (dot.y + dy2) / 2 + Math.sin(perpAngle) * curveOffset,
+              progress: 0,
+              speed: 0.004 + Math.random() * 0.003,
+              width: 1.5 + Math.random() * 1.2,
+              message: dot.message,
+            })
+          }
+        }
+
+        setLandedDots((prev) => prev.filter((d) => !toRemove.has(d.id)))
+      }
+
+      // Animate departing meteors — same fixed-length tail as flying meteors
+      departingRef.current = departingRef.current.filter((sh) => {
+        sh.progress = Math.min(1, sh.progress + sh.speed)
+        const p = sh.progress
+
+        const tailP = Math.max(0, p - TAIL_RATIO)
+        const hx = quadBezier(p,     sh.x1, sh.ctrlX, sh.x2)
+        const hy = quadBezier(p,     sh.y1, sh.ctrlY, sh.y2)
+        const tx = quadBezier(tailP, sh.x1, sh.ctrlX, sh.x2)
+        const ty = quadBezier(tailP, sh.y1, sh.ctrlY, sh.y2)
+
+        const grad = ctx.createLinearGradient(tx, ty, hx, hy)
+        grad.addColorStop(0,   'rgba(255,255,255,0)')
+        grad.addColorStop(0.5, 'rgba(200,210,255,0.3)')
+        grad.addColorStop(1,   'rgba(255,255,255,0.65)')
+
+        ctx.save()
+        ctx.strokeStyle = grad
+        ctx.lineWidth = sh.width
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(tx, ty)
+        ctx.lineTo(hx, hy)
+        ctx.stroke()
+
+        ctx.globalAlpha = 0.7 * (1 - p)
+        ctx.fillStyle = 'rgba(255,255,255,0.9)'
+        ctx.beginPath()
+        ctx.arc(hx, hy, sh.width + 0.5, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+
+        if (p >= 1) {
+          // Recycle the message back into the queue
+          messageQueueRef.current.push(sh.message)
+          return false
+        }
+        return true
+      })
 
       animIdRef.current = requestAnimationFrame(loop)
     }
@@ -279,19 +437,23 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
       cancelAnimationFrame(animIdRef.current)
       window.removeEventListener('resize', resize)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <div className="fixed inset-0" style={{ background: '#030712' }}>
-      {/* Canvas layer — background + meteor trails */}
+      {/* z-0: Orion Nebula background texture */}
+      <AsciiNebulaBackground />
+
+      {/* z-1: Canvas layer — twinkling stars + meteor trails */}
       <canvas
         ref={canvasRef}
         aria-hidden="true"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 0 }}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }}
       />
 
-      {/* DOM overlay — interactive dots + message cards */}
-      <div className="absolute inset-0" style={{ zIndex: 1, pointerEvents: 'none' }}>
+      {/* z-2: DOM overlay — interactive dots + message cards */}
+      <div className="absolute inset-0" style={{ zIndex: 2, pointerEvents: 'none' }}>
         {landedDots.map((dot) => {
           const isExpanded = expandedId === dot.id
           // Clamp card position to viewport
@@ -367,7 +529,7 @@ export default function MeteorShower({ messages, newMeteor }: MeteorShowerProps)
       {expandedId && (
         <div
           className="absolute inset-0"
-          style={{ zIndex: 2, pointerEvents: 'auto' }}
+          style={{ zIndex: 3, pointerEvents: 'auto' }}
           onClick={() => setExpandedId(null)}
         />
       )}

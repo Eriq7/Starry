@@ -186,6 +186,39 @@ Community message board where users send anonymous 50-char wishes that fly as sh
 
 ---
 
+## Sprint 17: 流星雨页面升级 — 自动消失亮点 + 星云背景 ✅
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 17.1 | `MeteorShower.tsx` — `FlyingMeteor` gains `angle` field; `LandedDot` metadata tracked in `landedMetaRef` (landedAt, angle) | ✅ |
+| 17.2 | `MeteorShower.tsx` — auto-departure: dots resting > 5s (and not expanded) fly off-screen along original trajectory; recycled back into `messageQueueRef` | ✅ |
+| 17.3 | `MeteorShower.tsx` — close-card resets 5s timer; `expandedIdRef` mirrors state for use inside animation loop | ✅ |
+| 17.4 | `public/orion-nebula.jpg` — Hubble Orion Nebula mosaic copied to public assets | ✅ |
+| 17.5 | `AsciiNebulaBackground.tsx` — new component: nebula image at z-0, CSS filters (contrast/brightness/saturate) for dim cosmic texture | ✅ |
+| 17.6 | `MeteorShower.tsx` — layer order updated: nebula bg (z-0) → canvas (z-1) → DOM dots (z-2) → close overlay (z-3) | ✅ |
+
+---
+
+## Sprint 18: 流星坠落速度修复 + 真正的 ASCII 星云背景 ✅
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 18.1 | `MeteorShower.tsx` — departing speed unified to `0.008 + random*0.006` (was `0.012 + random*0.008`); departing width unified to `1.5 + random*1.2` | ✅ |
+| 18.2 | `public/orion-cells.json` — extracted 5184 CELLS from `/tmp/orion_ascii.html` (81×64 grid, 328KB) | ✅ |
+| 18.3 | `AsciiNebulaBackground.tsx` — full rewrite: canvas ASCII renderer, sinusoidal pulse, diagonal sweep, random flicker, mouse/touch cyan ripple, shadowBlur glow (desktop only), 20fps cap, responsive sizing, fade-in on load | ✅ |
+
+---
+
+## Sprint 19: 流星尾迹固定长度 + 背景改回 JPG ✅
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 19.1 | `MeteorShower.tsx` — `FlyingMeteor` + `DepartingMeteor` gain `ctrlX/ctrlY`; `quadBezier` helper + `TAIL_RATIO=0.15` added; `buildMeteor` computes perpendicular curve offset (3-8% of length); flying + departing draw logic rewritten: both head and tail slide along bezier, tail is fixed-length, head stays bright (fades only last 10%) | ✅ |
+| 19.2 | `AsciiNebulaBackground.tsx` — stripped canvas/JSON logic; now a single `<img>` with `brightness(0.12) saturate(0.5)` CSS filter | ✅ |
+| 19.3 | `public/orion-cells.json` — deleted (no longer needed) | ✅ |
+
+---
+
 ## Deployment ✅
 
 | Item | Detail |
