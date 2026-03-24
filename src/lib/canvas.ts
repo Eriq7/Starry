@@ -10,8 +10,9 @@
  *    · No displayName: 120px tall, photo is 1080px
  *    · With displayName: 160px tall, photo is 1040px (keeps 1350 total)
  *  - Middle:     NASA photo, center-cropped, zero overlay
- *  - Bottom bar (150px): solid black — APOD title + copyright + date + "✦ Starry"
- *    · Date sits above "✦ Starry" at CARD_H - 44
+ *  - Bottom bar (150px): solid black — APOD title + copyright + date + URL pill badge
+ *    · Date sits above pill badge at CARD_H - 44
+ *    · Pill: semi-transparent dark background (rgba(0,0,0,0.5)) with indigo URL text
  *
  * Decorations: deterministic full-width meteor shower + micro-stars across
  * the ENTIRE width of both black bars. Drawn first so text renders on top.
@@ -292,11 +293,39 @@ export async function generateCard(options: CardOptions): Promise<HTMLCanvasElem
   ctx.textBaseline = 'bottom'
   ctx.fillText(formattedDate, CARD_W / 2, CARD_H - 44)
 
+  // URL pill badge — centered at bottom
+  const urlText = '✦visit → https://starry-neon.vercel.app'
   ctx.font = `bold 18px ${fontFamily}`
+  const textMetrics = ctx.measureText(urlText)
+  const textW = textMetrics.width
+  const pillPadX = 16
+  const pillPadY = 6
+  const pillW = textW + pillPadX * 2
+  const pillH = 18 + pillPadY * 2
+  const pillX = CARD_W / 2 - pillW / 2
+  const pillY = CARD_H - 16 - pillH
+  const pillR = 12
+
+  // Draw pill background
+  ctx.beginPath()
+  ctx.moveTo(pillX + pillR, pillY)
+  ctx.lineTo(pillX + pillW - pillR, pillY)
+  ctx.arcTo(pillX + pillW, pillY, pillX + pillW, pillY + pillR, pillR)
+  ctx.lineTo(pillX + pillW, pillY + pillH - pillR)
+  ctx.arcTo(pillX + pillW, pillY + pillH, pillX + pillW - pillR, pillY + pillH, pillR)
+  ctx.lineTo(pillX + pillR, pillY + pillH)
+  ctx.arcTo(pillX, pillY + pillH, pillX, pillY + pillH - pillR, pillR)
+  ctx.lineTo(pillX, pillY + pillR)
+  ctx.arcTo(pillX, pillY, pillX + pillR, pillY, pillR)
+  ctx.closePath()
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
+  ctx.fill()
+
+  // Draw URL text on top of pill
   ctx.fillStyle = '#818cf8'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
-  ctx.fillText('✦ Starry', CARD_W / 2, CARD_H - 16)
+  ctx.fillText(urlText, CARD_W / 2, CARD_H - 16)
 
   return canvas
 }
