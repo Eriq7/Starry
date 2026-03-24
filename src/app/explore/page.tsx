@@ -11,11 +11,10 @@
  *  3. Keyword picker (suggestions derived from title + explanation)
  *  4. Note input ("The day I was born")
  *  5. "Preview my card" → card preview
- *  6. Share modal → Download (gated for anonymous) / Copy Caption / Web Share
+ *  6. Share modal → Download / Add to My Starry / Web Share
  *
- * Draft is written to localStorage on every note/keyword change.
- * If auth_return=1 is in the URL, we restore the draft and auto-trigger
- * save + download once the card canvas is ready and the user is logged in.
+ * All users are authenticated before reaching this page (auth-first).
+ * No auth gating or draft persistence needed here.
  *
  * Analytics events: page_view, date_entered, photo_loaded, card_generated,
  * card_downloaded, caption_copied, card_shared.
@@ -33,13 +32,12 @@ import PhotoDisplay from '@/components/PhotoDisplay'
 import KeywordPicker from '@/components/KeywordPicker'
 import CuratedGallery from '@/components/CuratedGallery'
 import { suggestKeywords } from '@/lib/keywords'
-import { saveDraft, loadDraft, clearDraft } from '@/lib/draft'
 import MeteorInput from '@/components/MeteorInput'
 import { trackEvent } from '@/lib/analytics'
-import { getSupabaseBrowser } from '@/lib/supabase-browser'
-import { downloadCard, canvasToBlob } from '@/lib/canvas'
+import { canvasToBlob } from '@/lib/canvas'
 import { saveNode } from '@/lib/nodes'
 import type { CardOptions } from '@/lib/canvas'
+import type { Draft } from '@/lib/draft'
 
 // Dynamic import — only loaded when user opens share modal
 const ShareModal = dynamic(() => import('@/components/ShareModal'), { ssr: false })
@@ -58,8 +56,6 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 function ExplorePageInner() {
   const searchParams = useSearchParams()
   const defaultDate = searchParams.get('date') ?? ''
-  const authReturn = searchParams.get('auth_return') === '1'
-  const authErrorParam = searchParams.get('auth_error') === '1'
 
   const [step, setStep] = useState<Step>('input')
   const [preApodDate, setPreApodDate] = useState<string | null>(null)
@@ -70,60 +66,15 @@ function ExplorePageInner() {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [showShareModal, setShowShareModal] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
-
-  // Refs for the auto-save-and-download flow after Magic Link return
-  const cardCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  const pendingDownloadRef = useRef(false)
   const [showMeteorInput, setShowMeteorInput] = useState(false)
+
+  const cardCanvasRef = useRef<HTMLCanvasElement | null>(null)
 
   // Track page view on mount
   useEffect(() => {
     trackEvent('page_view', { page: 'explore' })
   }, [])
-
-  // Check auth status and watch for state changes
-  useEffect(() => {
-    const supabase = getSupabaseBrowser()
-    supabase.auth.getUser().then(({ data }) => {
-      setIsLoggedIn(!!data.user)
-    })
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const loggedIn = !!session?.user
-      setIsLoggedIn(loggedIn)
-      if (loggedIn && pendingDownloadRef.current && cardCanvasRef.current) {
-        pendingDownloadRef.current = false
-        triggerSaveAndDownload(cardCanvasRef.current)
-      }
-    })
-    return () => subscription.unsubscribe()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Handle auth_return: restore draft, set pending download, open modal
-  useEffect(() => {
-    if (!authReturn) return
-
-    // Clean up the URL so refreshing doesn't re-trigger this flow
-    window.history.replaceState({}, '', '/explore')
-
-    const draft = loadDraft()
-    if (!draft) {
-      setError('Your previous session expired. Please enter your date again.')
-      return
-    }
-
-    pendingDownloadRef.current = true
-    setDisplayName(draft.displayName ?? '')
-    setNote(draft.note)
-    setKeywords(draft.keywords)
-    fetchApod(draft.date, draft.resolvedDate, draft.apodTitle, draft.apodCopyright)
-    setTimeout(() => setShowShareModal(true), 800)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authReturn])
 
   function fetchApod(
     date: string,
@@ -192,10 +143,9 @@ function ExplorePageInner() {
     setStep('photo')
   }
 
-  // Persist draft to localStorage whenever note/keywords/displayName change
-  useEffect(() => {
-    if (!apod) return
-    saveDraft({
+  function buildNodeData(): Draft | null {
+    if (!apod) return null
+    return {
       date: apod.date,
       resolvedDate: apod.resolvedDate,
       note,
@@ -203,51 +153,16 @@ function ExplorePageInner() {
       keywords,
       apodTitle: apod.title,
       apodCopyright: apod.copyright,
-    })
-  }, [note, displayName, keywords, apod])
-
-  function handleCardReady(canvas: HTMLCanvasElement) {
-    cardCanvasRef.current = canvas
-    if (pendingDownloadRef.current && isLoggedIn) {
-      pendingDownloadRef.current = false
-      triggerSaveAndDownload(canvas)
-    }
-  }
-
-  async function triggerSaveAndDownload(canvas: HTMLCanvasElement) {
-    if (!apod) return
-    const draft = loadDraft()
-    if (!draft) return
-
-    setSaveState('saving')
-    try {
-      const blob = await canvasToBlob(canvas)
-      await saveNode(draft, blob)
-      await downloadCard(canvas, `starry-${apod.date}.png`)
-      trackEvent('card_downloaded', { date: apod.date })
-      clearDraft()
-      setSaveState('saved')
-    } catch (err) {
-      console.error('[explore] save+download failed:', err)
-      setSaveState('error')
-    }
-  }
-
-  async function handleAuthSuccess() {
-    setIsLoggedIn(true)
-    if (cardCanvasRef.current && apod) {
-      await triggerSaveAndDownload(cardCanvasRef.current)
     }
   }
 
   async function handleSaveToTimeline() {
     if (!apod || !cardCanvasRef.current) return
-    const draft = loadDraft()
-    if (!draft) return
+    const nodeData = buildNodeData()
+    if (!nodeData) return
     setSaveState('saving')
     const blob = await canvasToBlob(cardCanvasRef.current)
-    await saveNode(draft, blob)
-    clearDraft()
+    await saveNode(nodeData, blob)
     setSaveState('saved')
   }
 
@@ -286,16 +201,12 @@ function ExplorePageInner() {
           >
             Wishes
           </Link>
-          {isLoggedIn ? (
-            <Link
-              href="/profile"
-              className="text-sm text-white/50 hover:text-white/80 transition-colors"
-            >
-              My Starry
-            </Link>
-          ) : (
-            <div className="w-16" />
-          )}
+          <Link
+            href="/profile"
+            className="text-sm text-white/50 hover:text-white/80 transition-colors"
+          >
+            My Starry
+          </Link>
         </div>
       </header>
 
@@ -337,13 +248,6 @@ function ExplorePageInner() {
         {saveState === 'saving' && (
           <p className="w-full max-w-sm mt-4 text-sm text-white/40 text-center">
             Saving your moment…
-          </p>
-        )}
-
-        {/* Auth error */}
-        {authErrorParam && (
-          <p className="w-full max-w-sm mt-4 text-sm text-red-400 text-center">
-            Sign-in link expired. Please try again.
           </p>
         )}
 
@@ -468,10 +372,8 @@ function ExplorePageInner() {
       {showShareModal && cardOptions && (
         <ShareModal
           options={cardOptions}
-          isLoggedIn={isLoggedIn}
           onClose={() => setShowShareModal(false)}
-          onAuthSuccess={handleAuthSuccess}
-          onCardReady={handleCardReady}
+          onCardReady={(canvas) => { cardCanvasRef.current = canvas }}
           onSaveToTimeline={handleSaveToTimeline}
         />
       )}
@@ -481,7 +383,6 @@ function ExplorePageInner() {
         <MeteorInput
           displayName={displayName}
           eventDate={apod?.resolvedDate}
-          isLoggedIn={isLoggedIn}
           onClose={() => setShowMeteorInput(false)}
           onSuccess={() => setShowMeteorInput(false)}
         />

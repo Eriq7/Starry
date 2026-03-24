@@ -1,34 +1,39 @@
 /**
- * components/AuthModal.tsx
+ * app/login/page.tsx
  *
- * Magic Link authentication modal.
- * Shown when an anonymous user attempts a gated action (Download / Save / Meteor).
+ * Auth-first login page — the entry point for all unauthenticated users.
  *
- * Flow:
- *  1. User enters email → Supabase sends Magic Link
- *  2. User clicks link in email → /auth/callback route → {returnTo}?auth_return=1
- *  3. Target page detects auth_return, reads localStorage draft, re-triggers action
+ * Middleware redirects every protected route here, passing the intended
+ * destination as `?returnTo=<path>`. After Magic Link auth, the user
+ * lands back at their original destination.
  *
- * The draft is preserved in localStorage before this modal is shown.
- * Accepts an optional `returnTo` prop (defaults to '/explore') for dynamic redirects.
+ * If the user is already authenticated, they are immediately redirected
+ * to `returnTo` (or `/` as fallback).
  */
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 
-interface AuthModalProps {
-  onClose: () => void
-  onSuccess?: () => void
-  /** Where to redirect after Magic Link — defaults to '/explore' */
-  returnTo?: string
-}
+function LoginPageInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = searchParams.get('returnTo') ?? '/'
+  const authError = searchParams.get('auth_error') === '1'
 
-export default function AuthModal({ onClose, returnTo = '/explore' }: AuthModalProps) {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // If already logged in, skip login and go to destination
+  useEffect(() => {
+    const supabase = getSupabaseBrowser()
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) router.replace(returnTo)
+    })
+  }, [router, returnTo])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -40,7 +45,7 @@ export default function AuthModal({ onClose, returnTo = '/explore' }: AuthModalP
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       (typeof window !== 'undefined' ? window.location.origin : '')
-    const redirectTo = `${baseUrl}/auth/callback?next=${returnTo}`
+    const redirectTo = `${baseUrl}/auth/callback?next=${encodeURIComponent(returnTo)}`
 
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
@@ -56,36 +61,47 @@ export default function AuthModal({ onClose, returnTo = '/explore' }: AuthModalP
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
-      onClick={onClose}
+    <main
+      className="relative min-h-screen flex flex-col items-center justify-center px-6"
+      style={{
+        background:
+          'radial-gradient(ellipse at 20% 50%, #0d0d2e 0%, #030712 60%, #000 100%)',
+      }}
     >
+      {/* Logo */}
+      <div className="mb-10 text-center">
+        <span
+          className="font-cinzel text-2xl tracking-widest"
+          style={{ color: '#818cf8' }}
+        >
+          ✦ STARRY
+        </span>
+        <p className="mt-2 text-sm text-white/40">Your universe, your moments</p>
+      </div>
+
       <div
-        className="relative w-full max-w-sm rounded-3xl p-6 space-y-5"
+        className="w-full max-w-sm rounded-3xl p-6 space-y-5"
         style={{
           background: 'linear-gradient(160deg, #0f0f2e 0%, #030712 100%)',
           border: '1px solid rgba(129,140,248,0.25)',
           boxShadow: '0 0 60px rgba(99,102,241,0.2)',
         }}
-        onClick={(e) => e.stopPropagation()}
       >
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-white/40 hover:text-white/80 transition-colors text-xl leading-none"
-        >
-          ×
-        </button>
-
         {status !== 'sent' ? (
           <>
             <div className="text-center space-y-1">
               <p className="text-2xl">✦</p>
-              <h2 className="text-lg font-light text-white">Save your universe</h2>
+              <h1 className="text-lg font-light text-white">Sign in to explore</h1>
               <p className="text-sm text-white/50">
-                Sign in with your email to download and save your card.
+                No password needed — we&apos;ll send you a magic link.
               </p>
             </div>
+
+            {authError && (
+              <p className="text-xs text-red-400 text-center">
+                Sign-in link expired. Please try again.
+              </p>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <input
@@ -116,7 +132,7 @@ export default function AuthModal({ onClose, returnTo = '/explore' }: AuthModalP
             </form>
 
             <p className="text-xs text-center text-white/25">
-              No password needed. One tap and you're in.
+              No password needed. One tap and you&apos;re in.
             </p>
           </>
         ) : (
@@ -124,16 +140,22 @@ export default function AuthModal({ onClose, returnTo = '/explore' }: AuthModalP
             <p className="text-3xl">📬</p>
             <h2 className="text-lg font-light text-white">Check your inbox</h2>
             <p className="text-sm text-white/50">
-              We sent a magic link to <strong className="text-white/80">{email}</strong>.
+              We sent a magic link to{' '}
+              <strong className="text-white/80">{email}</strong>.
               <br />
-              Click it to return and continue.
-            </p>
-            <p className="text-xs text-white/25 pt-2">
-              Your draft is saved — it'll be here when you return.
+              Click it to continue to Starry.
             </p>
           </div>
         )}
       </div>
-    </div>
+    </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageInner />
+    </Suspense>
   )
 }

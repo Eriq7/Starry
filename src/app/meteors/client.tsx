@@ -2,27 +2,24 @@
  * app/meteors/client.tsx
  *
  * Client component for the /meteors page.
- * Full-screen interactive meteor shower — displays anonymous messages from the DB
+ * Full-screen interactive meteor shower — displays messages from the DB
  * as animated shooting stars that land as clickable glowing dots.
  *
- * Auth return handling: if ?auth_return=1 is present, loads MeteorDraft from
- * localStorage and auto-submits the pending meteor message.
+ * All users are authenticated before reaching this page (auth-first).
+ * The "Send wish" button opens MeteorInput directly — no auth gating needed.
  *
  * Header: ✦ STARRY + Home + My Starry links
- * Footer: "Send your own wish ✦" CTA → opens MeteorInput (auth-gated)
+ * Footer: "Send your own wish ✦" CTA → opens MeteorInput
  */
 
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import MeteorInput from '@/components/MeteorInput'
 import MeteorOnboarding from '@/components/MeteorOnboarding'
-import { loadMeteorDraft, clearMeteorDraft } from '@/lib/draft'
 import { trackEvent } from '@/lib/analytics'
-import { getSupabaseBrowser } from '@/lib/supabase-browser'
 
 const MeteorShower = dynamic(() => import('@/components/MeteorShower'), { ssr: false })
 
@@ -34,29 +31,10 @@ interface MeteorMessage {
   createdAt: string
 }
 
-function MeteorShowerClientInner() {
-  const searchParams = useSearchParams()
-  const authReturn = searchParams.get('auth_return') === '1'
-
+export default function MeteorShowerClient() {
   const [messages, setMessages] = useState<MeteorMessage[]>([])
   const [showMeteorInput, setShowMeteorInput] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [prefillDisplayName, setPrefillDisplayName] = useState('')
-  const [prefillMessage, setPrefillMessage] = useState('')
-  const [prefillCategory, setPrefillCategory] = useState<'wish' | 'reflection' | 'warmth'>('wish')
   const [newMeteor, setNewMeteor] = useState<MeteorMessage | undefined>(undefined)
-
-  // Check auth state
-  useEffect(() => {
-    const supabase = getSupabaseBrowser()
-    supabase.auth.getUser().then(({ data }) => {
-      setIsLoggedIn(!!data.user)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session?.user)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
 
   // Track page view
   useEffect(() => {
@@ -72,29 +50,6 @@ function MeteorShowerClientInner() {
       })
       .catch(() => {/* non-critical */})
   }, [])
-
-  // Handle auth return — restore draft and auto-submit
-  useEffect(() => {
-    if (!authReturn) return
-
-    // Clean URL
-    window.history.replaceState({}, '', '/meteors')
-
-    const draft = loadMeteorDraft()
-    if (!draft) return
-
-    // Pre-fill and open the input modal for auto-submit
-    setPrefillMessage(draft.message)
-    setPrefillCategory(draft.category)
-    setPrefillDisplayName(draft.displayName)
-    setShowMeteorInput(true)
-    clearMeteorDraft()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authReturn])
-
-  function handleSendWish() {
-    setShowMeteorInput(true)
-  }
 
   return (
     <main className="relative min-h-screen" style={{ background: '#030712' }}>
@@ -137,7 +92,7 @@ function MeteorShowerClientInner() {
         style={{ zIndex: 10 }}
       >
         <button
-          onClick={handleSendWish}
+          onClick={() => setShowMeteorInput(true)}
           className="px-8 py-3 rounded-full text-sm font-medium tracking-wide transition-all duration-200 hover:scale-105 active:scale-95"
           style={{
             background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
@@ -152,9 +107,7 @@ function MeteorShowerClientInner() {
       {/* Meteor input modal */}
       {showMeteorInput && (
         <MeteorInput
-          prefillDisplayName={prefillDisplayName}
           eventDate={undefined}
-          isLoggedIn={isLoggedIn}
           onClose={() => setShowMeteorInput(false)}
           onSuccess={(data) => {
             setShowMeteorInput(false)
@@ -167,18 +120,8 @@ function MeteorShowerClientInner() {
               createdAt: new Date().toISOString(),
             })
           }}
-          prefillMessage={prefillMessage}
-          prefillCategory={prefillCategory}
         />
       )}
     </main>
-  )
-}
-
-export default function MeteorShowerClient() {
-  return (
-    <Suspense>
-      <MeteorShowerClientInner />
-    </Suspense>
   )
 }

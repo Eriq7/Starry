@@ -1,17 +1,13 @@
 /**
  * lib/draft.ts
  *
- * localStorage draft management for the anonymous → auth flow.
+ * Type definition for a moment node draft — used by the card save flow
+ * (explore/page.tsx → saveNode → /api/nodes).
  *
- * When a user fills in date/note/keywords before logging in, we persist
- * their work to localStorage immediately. After Magic Link redirect, we
- * read the draft back to re-generate the card and save to DB.
- *
- * Important: Never assume localStorage context survives the email redirect —
- * always read the draft fresh after auth return.
+ * The localStorage draft persistence system has been removed now that
+ * the app is auth-first. This file is kept for the Draft type used by
+ * nodes.ts (client) and api/nodes/route.ts (server).
  */
-
-const DRAFT_KEY = 'starry_draft'
 
 export interface Draft {
   date: string           // user's entered date (YYYY-MM-DD)
@@ -21,77 +17,4 @@ export interface Draft {
   keywords: string[]
   apodTitle: string
   apodCopyright?: string
-  savedAt: number        // Unix ms timestamp for staleness checks
-}
-
-export function saveDraft(draft: Omit<Draft, 'savedAt'>): void {
-  if (typeof window === 'undefined') return
-  const full: Draft = { ...draft, savedAt: Date.now() }
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(full))
-}
-
-export function loadDraft(): Draft | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem(DRAFT_KEY)
-    if (!raw) return null
-    const draft = JSON.parse(raw) as Draft
-    // Discard drafts older than 24 hours
-    if (Date.now() - draft.savedAt > 24 * 60 * 60 * 1000) {
-      clearDraft()
-      return null
-    }
-    return draft
-  } catch {
-    return null
-  }
-}
-
-export function clearDraft(): void {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem(DRAFT_KEY)
-}
-
-export function hasDraft(): boolean {
-  return loadDraft() !== null
-}
-
-// ─── Meteor Draft ────────────────────────────────────────────────────────────
-
-const METEOR_DRAFT_KEY = 'starry_meteor_draft'
-
-export interface MeteorDraft {
-  message: string
-  category: 'wish' | 'reflection' | 'warmth'
-  displayName: string
-  eventDate?: string
-  savedAt: number
-}
-
-export function saveMeteorDraft(draft: Omit<MeteorDraft, 'savedAt'>): void {
-  if (typeof window === 'undefined') return
-  const full: MeteorDraft = { ...draft, savedAt: Date.now() }
-  localStorage.setItem(METEOR_DRAFT_KEY, JSON.stringify(full))
-}
-
-export function loadMeteorDraft(): MeteorDraft | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem(METEOR_DRAFT_KEY)
-    if (!raw) return null
-    const draft = JSON.parse(raw) as MeteorDraft
-    // Discard drafts older than 24 hours
-    if (Date.now() - draft.savedAt > 24 * 60 * 60 * 1000) {
-      clearMeteorDraft()
-      return null
-    }
-    return draft
-  } catch {
-    return null
-  }
-}
-
-export function clearMeteorDraft(): void {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem(METEOR_DRAFT_KEY)
 }

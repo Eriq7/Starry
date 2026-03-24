@@ -3,11 +3,20 @@
  *
  * Next.js Edge middleware — runs on every request before the page renders.
  *
- * Refreshes the Supabase auth session token on every request so auth tokens
- * don't expire silently between page loads. This is required when using
- * @supabase/ssr cookie-based auth in a Next.js App Router project.
+ * Two responsibilities:
+ *  1. Refresh the Supabase auth session token on every request (required for
+ *     @supabase/ssr cookie-based auth in Next.js App Router).
+ *  2. Auth-first route protection: unauthenticated users are redirected to
+ *     /login for all protected routes, preserving their intended destination
+ *     via ?returnTo=<path>.
  *
- * Must live at the project root (next to next.config.ts), not inside src/.
+ * Public routes (no auth required):
+ *  - /login
+ *  - /auth/* (Magic Link callback)
+ *  - /api/* (API routes handle their own auth)
+ *  - /gift/[id] (gift reveal — recipient needs no account)
+ *
+ * Protected routes (auth required): everything else, including /gift/create.
  *
  * Reference: https://supabase.com/docs/guides/auth/server-side/nextjs
  */
@@ -40,7 +49,36 @@ export async function middleware(request: NextRequest) {
 
   // Refresh session — do not remove this call.
   // It keeps the access token alive and populates the session cookie.
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+
+  // Public routes — accessible without authentication
+  const isPublic =
+    pathname === '/login' ||
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/api/') ||
+    // Gift reveal pages (/gift/[id]) are public; gift creation (/gift/create) is protected
+    (pathname.startsWith('/gift/') && pathname !== '/gift/create')
+
+  if (!user && !isPublic) {
+    // Redirect to login, preserving the intended destination
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = '/login'
+    loginUrl.search = ''
+    loginUrl.searchParams.set('returnTo', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  if (user && pathname === '/login') {
+    // Already authenticated — send to homepage
+    const homeUrl = request.nextUrl.clone()
+    homeUrl.pathname = '/'
+    homeUrl.search = ''
+    return NextResponse.redirect(homeUrl)
+  }
 
   return supabaseResponse
 }

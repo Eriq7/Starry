@@ -3,32 +3,27 @@
  *
  * Share modal — appears after the user previews their card.
  * Three actions:
- *  1. Download image (gated behind auth for anonymous users)
- *  2. Add to My Starry (saves card to timeline DB; opens auth for anonymous users)
+ *  1. Download image (saves card PNG locally)
+ *  2. Add to My Starry (saves card to timeline DB)
  *  3. Web Share API (system share sheet on mobile; download fallback on desktop)
  *
- * For anonymous users, Download and "Add to My Starry" trigger the auth modal.
- * Web Share always works — important for virality.
+ * All users are authenticated by the time they reach this modal (auth-first).
  */
 
 'use client'
 
 import { useRef, useState } from 'react'
 import ShareCard from './ShareCard'
-import AuthModal from './AuthModal'
 import MeteorInput from './MeteorInput'
 import { downloadCard, canvasToBlob, type CardOptions } from '@/lib/canvas'
 import { trackEvent } from '@/lib/analytics'
 
 interface ShareModalProps {
   options: CardOptions
-  isLoggedIn: boolean
   onClose: () => void
-  /** Called when user has just authenticated via this modal */
-  onAuthSuccess?: () => void
   /** Called with the canvas element once the card has been rendered */
   onCardReady?: (canvas: HTMLCanvasElement) => void
-  /** Called when user clicks "Add to My Starry" and is logged in */
+  /** Called when user clicks "Add to My Starry" */
   onSaveToTimeline?: () => Promise<void>
 }
 
@@ -41,14 +36,11 @@ function buildCaption(note: string, title: string): string {
 
 export default function ShareModal({
   options,
-  isLoggedIn,
   onClose,
-  onAuthSuccess,
   onCardReady,
   onSaveToTimeline,
 }: ShareModalProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [showAuth, setShowAuth] = useState(false)
   const [showMeteorInput, setShowMeteorInput] = useState(false)
   const [timelineSaveState, setTimelineSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
@@ -56,20 +48,12 @@ export default function ShareModal({
   const filename = `starry-${options.date}.png`
 
   async function handleDownload() {
-    if (!isLoggedIn) {
-      setShowAuth(true)
-      return
-    }
     if (!canvasRef.current) return
     await downloadCard(canvasRef.current, filename)
     trackEvent('card_downloaded', { date: options.date })
   }
 
   async function handleAddToTimeline() {
-    if (!isLoggedIn) {
-      setShowAuth(true)
-      return
-    }
     if (timelineSaveState === 'saving' || timelineSaveState === 'saved') return
     setTimelineSaveState('saving')
     try {
@@ -113,8 +97,7 @@ export default function ShareModal({
   const timelineLabel =
     timelineSaveState === 'saving' ? 'Saving…' :
     timelineSaveState === 'saved'  ? 'Added!' :
-    timelineSaveState === 'error'  ? 'Error' :
-    !isLoggedIn                    ? 'Sign in' : 'Add to My Starry'
+    timelineSaveState === 'error'  ? 'Error' : 'Add to My Starry'
 
   return (
     <>
@@ -156,9 +139,7 @@ export default function ShareModal({
               }}
             >
               <span className="text-xl">⬇️</span>
-              <span className="text-xs text-white/70">
-                {isLoggedIn ? 'Save' : 'Sign in'}
-              </span>
+              <span className="text-xs text-white/70">Save</span>
             </button>
 
             {/* Add to My Starry */}
@@ -189,47 +170,26 @@ export default function ShareModal({
             </button>
           </div>
 
-          {/* Anonymous hint */}
-          {!isLoggedIn && (
-            <p className="text-xs text-center text-white/30 pb-1">
-              Sign in to save and download your card
-            </p>
-          )}
-
-          {/* Meteor wish CTA — shown when logged in */}
-          {isLoggedIn && (
-            <button
-              onClick={() => setShowMeteorInput(true)}
-              className="w-full py-2.5 rounded-xl text-sm transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
-              style={{
-                background: 'rgba(129,140,248,0.08)',
-                border: '1px solid rgba(129,140,248,0.2)',
-                color: 'rgba(199,210,254,0.8)',
-              }}
-            >
-              Send a meteor wish ✦
-            </button>
-          )}
+          {/* Meteor wish CTA */}
+          <button
+            onClick={() => setShowMeteorInput(true)}
+            className="w-full py-2.5 rounded-xl text-sm transition-all duration-150 hover:scale-[1.01] active:scale-[0.99]"
+            style={{
+              background: 'rgba(129,140,248,0.08)',
+              border: '1px solid rgba(129,140,248,0.2)',
+              color: 'rgba(199,210,254,0.8)',
+            }}
+          >
+            Send a meteor wish ✦
+          </button>
         </div>
       </div>
-
-      {/* Auth modal (shown when anonymous user taps Download or Add to My Starry) */}
-      {showAuth && (
-        <AuthModal
-          onClose={() => setShowAuth(false)}
-          onSuccess={() => {
-            setShowAuth(false)
-            onAuthSuccess?.()
-          }}
-        />
-      )}
 
       {/* Meteor wish composer */}
       {showMeteorInput && (
         <MeteorInput
           displayName={options.displayName ?? ''}
           eventDate={options.date}
-          isLoggedIn={isLoggedIn}
           onClose={() => setShowMeteorInput(false)}
           onSuccess={() => setShowMeteorInput(false)}
         />

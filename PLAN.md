@@ -219,6 +219,27 @@ Community message board where users send anonymous 50-char wishes that fly as sh
 
 ---
 
+## Sprint 20: Auth-First 前置登录 ✅
+
+Converted from "anonymous-first, auth on action" to "auth-first" — users must sign in before accessing any feature.
+
+| Step | Description | Status |
+|------|-------------|--------|
+| 20.1 | `middleware.ts` — added auth route guard; unauth → `/login?returnTo=<path>`; `/gift/[id]` stays public | ✅ |
+| 20.2 | `app/login/page.tsx` — new full-page login with deep space background, Magic Link email, returnTo redirect | ✅ |
+| 20.3 | `auth/callback/route.ts` — default next changed to `/`, removed `?auth_return=1`, error → `/login?auth_error=1` | ✅ |
+| 20.4 | `ShareModal.tsx` — removed `isLoggedIn`/`onAuthSuccess` props and AuthModal; meteor CTA always shown | ✅ |
+| 20.5 | `MeteorInput.tsx` — removed `isLoggedIn`, auth gating, draft save, and auth-return prefill props | ✅ |
+| 20.6 | `explore/page.tsx` — removed auth state, draft system, auth-return flow; "My Starry" always visible | ✅ |
+| 20.7 | `meteors/client.tsx` — removed auth state, draft restore, Suspense wrapper; component flattened | ✅ |
+| 20.8 | `gift/create/page.tsx` — removed auth state and AuthModal gating | ✅ |
+| 20.9 | `AuthButton.tsx` — simplified to sign-out only | ✅ |
+| 20.10 | `profile/page.tsx` — fallback redirect changed to `/login` | ✅ |
+| 20.11 | `lib/draft.ts` — stripped to just the `Draft` interface (localStorage functions deleted) | ✅ |
+| 20.12 | `AuthModal.tsx` — deleted (replaced by `/login` page) | ✅ |
+
+---
+
 ## Deployment ✅
 
 | Item | Detail |

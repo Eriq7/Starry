@@ -292,7 +292,6 @@ export default function TimelineView({ nodes }: TimelineViewProps) {
       {shareNode && cardOptions && (
         <ShareModal
           options={cardOptions}
-          isLoggedIn={true}
           onClose={() => setShareNode(null)}
         />
       )}

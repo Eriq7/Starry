@@ -1,25 +1,23 @@
 /**
  * app/gift/create/page.tsx
  *
- * Gift creation page — lets a logged-in user gift a star moment to a friend.
+ * Gift creation page — lets a user gift a star moment to a friend.
  *
  * Form fields:
  *  - Friend's name (recipientName)
  *  - Important date (eventDate — reuses the same date input UX)
  *  - Optional personal message
  *
- * Auth gating: if not logged in, shows an inline prompt to sign in first
- * (AuthModal is opened on submit attempt).
+ * All users are authenticated before reaching this page (auth-first).
+ * No auth gating needed — the form submits directly.
  *
  * On success: shows the shareable gift URL with a copy button.
  */
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import AuthModal from '@/components/AuthModal'
-import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { APOD_START_DATE } from '@/lib/constants'
 import { trackEvent } from '@/lib/analytics'
 
@@ -27,8 +25,6 @@ export default function GiftCreatePage() {
   const [recipientName, setRecipientName] = useState('')
   const [eventDate, setEventDate] = useState('')
   const [message, setMessage] = useState('')
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [showAuth, setShowAuth] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [giftUrl, setGiftUrl] = useState<string | null>(null)
@@ -36,23 +32,9 @@ export default function GiftCreatePage() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  useEffect(() => {
-    const supabase = getSupabaseBrowser()
-    supabase.auth.getUser().then(({ data }) => setIsLoggedIn(!!data.user))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setIsLoggedIn(!!session?.user)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-
-    if (!isLoggedIn) {
-      setShowAuth(true)
-      return
-    }
 
     if (!recipientName.trim()) {
       setError("Enter your friend's name.")
@@ -182,7 +164,7 @@ export default function GiftCreatePage() {
               {/* Friend's name */}
               <div>
                 <label className="block text-sm mb-2 tracking-wide" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                  Friend's name
+                  Friend&apos;s name
                 </label>
                 <input
                   type="text"
@@ -261,23 +243,10 @@ export default function GiftCreatePage() {
               >
                 {loading ? 'Creating gift…' : 'Create gift link ✦'}
               </button>
-
-              {!isLoggedIn && (
-                <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  You'll need to sign in to create a gift
-                </p>
-              )}
             </form>
           )}
         </div>
       </div>
-
-      {showAuth && (
-        <AuthModal
-          onClose={() => setShowAuth(false)}
-          onSuccess={() => setShowAuth(false)}
-        />
-      )}
     </main>
   )
 }
